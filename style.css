@@ -125,7 +125,7 @@ body {
   outline: none;
 }
 
-/* 카드 목록 */
+/* 카드 목록 피드 */
 .card-list {
   padding: 10px 20px 90px;
   display: flex;
@@ -218,28 +218,6 @@ body {
   font-weight: 600;
 }
 
-.card-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-action {
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  padding: 6px 14px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #334155;
-  cursor: pointer;
-}
-
-.btn-delete {
-  border-color: #fee2e2;
-  color: #ef4444;
-  background-color: #fffaf0;
-}
-
 /* 플로팅 액션 버튼 (+) */
 .fab-btn {
   position: fixed;
@@ -269,7 +247,7 @@ body {
   }
 }
 
-/* 서브 페이지(작성창) 헤더 */
+/* 서브 페이지 헤더 */
 .sub-header {
   display: flex;
   justify-content: space-between;
@@ -307,14 +285,6 @@ body {
 
 .input-group {
   margin-bottom: 22px;
-  position: relative;
-}
-
-.label-with-source {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
 }
 
 .input-label {
@@ -322,19 +292,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: #334155;
-}
-
-.bgg-badge {
-  font-size: 11px;
-  font-weight: 700;
-  color: #ff5100;
-  background-color: #fff1eb;
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-
-.autocomplete-wrapper {
-  position: relative;
+  margin-bottom: 8px;
 }
 
 .text-input {
@@ -350,63 +308,6 @@ body {
 
 .text-input:focus {
   border-color: #3b82f6;
-}
-
-.input-tip {
-  font-size: 11px;
-  color: #94a3b8;
-  margin-top: 6px;
-}
-
-/* BGG 자동완성 드롭다운 */
-.bgg-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  margin-top: 6px;
-  max-height: 220px;
-  overflow-y: auto;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  z-index: 50;
-}
-
-.bgg-item {
-  padding: 12px 14px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.bgg-item:last-child {
-  border-bottom: none;
-}
-
-.bgg-item:hover, .bgg-item:active {
-  background-color: #f8fafc;
-}
-
-.bgg-game-name {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.bgg-game-year {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.bgg-status {
-  padding: 14px;
-  font-size: 13px;
-  color: #64748b;
-  text-align: center;
 }
 
 /* 칩 버튼 */

@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- 헤더 -->
+    <!-- 서브 헤더 -->
     <header class="sub-header">
       <a href="index.html" class="nav-back">✕ 취소</a>
       <h1 class="sub-title">기록 추가</h1>
@@ -21,24 +21,17 @@
     <!-- 입력 폼 -->
     <main class="form-container">
       <form id="recordForm">
-        <!-- 1. 보드게임명 (BGG 자동완성 연동) -->
+        <!-- 1. 보드게임명 직접 입력 -->
         <div class="input-group">
-          <div class="label-with-source">
-            <label class="input-label" for="gameName">보드게임명</label>
-            <span class="bgg-badge">BGG 연동</span>
-          </div>
-          <div class="autocomplete-wrapper">
-            <input 
-              type="text" 
-              id="gameName" 
-              class="text-input" 
-              placeholder="영문 이름 입력 (예: Wingspan, Catan)" 
-              autocomplete="off"
-              required
-            >
-            <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
-          </div>
-          <p class="input-tip">* 2글자 이상 입력 시 BoardGameGeek 공식 명칭이 추천됩니다.</p>
+          <label class="input-label" for="gameName">보드게임명</label>
+          <input 
+            type="text" 
+            id="gameName" 
+            class="text-input" 
+            placeholder="보드게임명을 입력하세요 (예: 카탄, Catan)" 
+            autocomplete="off"
+            required
+          >
         </div>
 
         <!-- 2. 인원 (2인 ~ 8인) -->
@@ -109,69 +102,8 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbybHJcSgR0ZyDOptjjZQUe2eYueDalbRK95z-25jmA1O3TWnCpdPBErHc_HionBNWSKuQ/exec";
 
-    const input = document.getElementById('gameName');
-    const dropdown = document.getElementById('bggResults');
-    let timer = null;
-
-    // 입력 감지 (Debounce 적용)
-    input.addEventListener('input', function() {
-      const query = this.value.trim();
-      clearTimeout(timer);
-
-      if (query.length < 2) {
-        dropdown.style.display = 'none';
-        dropdown.innerHTML = '';
-        return;
-      }
-
-      timer = setTimeout(() => {
-        searchBGG(query);
-      }, 350);
-    });
-
-    // Apps Script 백엔드를 통한 안전한 BGG 검색
-    async function searchBGG(query) {
-      dropdown.innerHTML = '<div class="bgg-status">BGG 검색 중...</div>';
-      dropdown.style.display = 'block';
-
-      try {
-        const response = await fetch(`${API_URL}?bgg=${encodeURIComponent(query)}`);
-        const result = await response.json();
-
-        if (result.status === "success" && result.data.length > 0) {
-          dropdown.innerHTML = '';
-          result.data.forEach(item => {
-            const option = document.createElement("div");
-            option.className = "bgg-item";
-            option.innerHTML = `
-              <span class="bgg-game-name">${escapeHtml(item.name)}</span>
-              ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
-            `;
-
-            option.addEventListener("click", function() {
-              input.value = item.name;
-              dropdown.style.display = 'none';
-            });
-
-            dropdown.appendChild(option);
-          });
-        } else {
-          dropdown.innerHTML = '<div class="bgg-status">일치하는 결과가 없습니다.</div>';
-        }
-      } catch (error) {
-        dropdown.innerHTML = '<div class="bgg-status">검색에 실패했습니다. 직접 입력해 주세요.</div>';
-      }
-    }
-
-    // 바깥 영역 클릭 시 드롭다운 닫기
-    document.addEventListener('click', function(e) {
-      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.style.display = 'none';
-      }
-    });
-
-    // 스프레드시트 저장 (POST)
     const form = document.getElementById('recordForm');
+    const input = document.getElementById('gameName');
     const saveBtn = document.getElementById('saveBtn');
 
     form.addEventListener('submit', async function(e) {
@@ -218,14 +150,6 @@
         saveBtn.innerText = "저장하기";
       }
     });
-
-    function escapeHtml(text) {
-      if (!text) return "";
-      return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
   </script>
 </body>
 </html>
