@@ -1,415 +1,156 @@
-/* 전역 초기화 */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>새 기록 작성 - My Shelf</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 헤더 -->
+    <header class="sub-header">
+      <a href="index.html" class="nav-back">✕ 취소</a>
+      <h1 class="sub-title">기록 추가</h1>
+      <div class="header-dummy"></div>
+    </header>
 
-body {
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f2f4f8;
-  color: #1e2229;
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-}
+    <!-- 입력 폼 -->
+    <main class="form-container">
+      <form id="recordForm">
+        <!-- 1. 보드게임명 직접 입력 -->
+        <div class="input-group">
+          <label class="input-label" for="gameName">보드게임명</label>
+          <input 
+            type="text" 
+            id="gameName" 
+            class="text-input" 
+            placeholder="보드게임명을 입력하세요 (예: 카탄, Splendor)" 
+            autocomplete="off"
+            required
+          >
+        </div>
 
-/* 모바일 전용 컨테이너 */
-.app-container {
-  width: 100%;
-  max-width: 440px;
-  background-color: #f8fafc;
-  min-height: 100vh;
-  position: relative;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-}
+        <!-- 2. 인원 (2인 ~ 8인) -->
+        <div class="input-group">
+          <label class="input-label">인원 (2인~8인)</label>
+          <div class="chip-container">
+            <label class="chip-item"><input type="radio" name="players" value="2"><span>2인</span></label>
+            <label class="chip-item"><input type="radio" name="players" value="3"><span>3인</span></label>
+            <label class="chip-item"><input type="radio" name="players" value="4" checked><span>4인</span></label>
+            <label class="chip-item"><input type="radio" name="players" value="5"><span>5인</span></label>
+            <label class="chip-item"><input type="radio" name="players" value="6"><span>6인</span></label>
+            <label class="chip-item"><input type="radio" name="players" value="7"><span>7인</span></label>
+            <label class="chip-item"><input type="radio" name="players" value="8"><span>8인</span></label>
+          </div>
+        </div>
 
-/* 상단 메인 헤더 */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 20px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #eef2f6;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
+        <!-- 3. 난이도 점수 (5점 만점) -->
+        <div class="input-group">
+          <label class="input-label">난이도 점수 (5점 만점)</label>
+          <div class="score-card-group">
+            <label class="score-card">
+              <input type="radio" name="difficulty" value="1">
+              <div class="score-box">
+                <span class="score-digit">1</span>
+                <span class="score-name">매우 쉬움</span>
+              </div>
+            </label>
+            <label class="score-card">
+              <input type="radio" name="difficulty" value="2">
+              <div class="score-box">
+                <span class="score-digit">2</span>
+                <span class="score-name">쉬움</span>
+              </div>
+            </label>
+            <label class="score-card">
+              <input type="radio" name="difficulty" value="3" checked>
+              <div class="score-box">
+                <span class="score-digit">3</span>
+                <span class="score-name">보통</span>
+              </div>
+            </label>
+            <label class="score-card">
+              <input type="radio" name="difficulty" value="4">
+              <div class="score-box">
+                <span class="score-digit">4</span>
+                <span class="score-name">어려움</span>
+              </div>
+            </label>
+            <label class="score-card">
+              <input type="radio" name="difficulty" value="5">
+              <div class="score-box">
+                <span class="score-digit">5</span>
+                <span class="score-name">매우 어려움</span>
+              </div>
+            </label>
+          </div>
+        </div>
 
-.logo-area {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+        <!-- 하단 버튼 -->
+        <div class="button-group">
+          <a href="index.html" class="btn btn-cancel">취소</a>
+          <button type="submit" id="saveBtn" class="btn btn-save" style="border: none;">저장하기</button>
+        </div>
+      </form>
+    </main>
+  </div>
 
-.logo-icon {
-  font-size: 22px;
-}
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyJ4tOJInYvsGWUC9gKDLNLQM2kLkP3u_G-ZS4zaJizbOdGTICthfutBkcNgPz5WJnNIA/exec";
 
-.logo-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: #1e293b;
-  letter-spacing: -0.3px;
-}
+    const form = document.getElementById('recordForm');
+    const input = document.getElementById('gameName');
+    const saveBtn = document.getElementById('saveBtn');
 
-.user-badge {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #334155;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
 
-/* 검색 및 필터 영역 */
-.filter-section {
-  padding: 16px 20px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+      const gameName = input.value.trim();
+      const players = document.querySelector('input[name="players"]:checked')?.value || "4";
+      const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value || "3";
 
-.search-box {
-  display: flex;
-  align-items: center;
-  background-color: #2b303b;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
+      if (!gameName) {
+        alert("보드게임명을 입력해 주세요.");
+        return;
+      }
 
-.search-icon {
-  font-size: 14px;
-  color: #94a3b8;
-  margin-right: 8px;
-}
+      saveBtn.disabled = true;
+      saveBtn.innerText = "저장 중...";
 
-.search-box input {
-  border: none;
-  background: transparent;
-  width: 100%;
-  font-size: 14px;
-  outline: none;
-  color: #cbd5e1;
-}
+      try {
+        // CORS 방지를 위해 text/plain으로 JSON 전송 (작성일은 서버에서 오늘 날짜로 자동 처리)
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify({
+            gameName: gameName,
+            players: players,
+            difficulty: difficulty
+          })
+        });
 
-.search-box input::placeholder {
-  color: #94a3b8;
-}
+        const result = await response.json();
 
-.filter-row {
-  display: flex;
-  gap: 8px;
-}
-
-.select-wrapper {
-  flex: 1;
-}
-
-.select-wrapper select {
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background-color: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
-  outline: none;
-}
-
-/* 카드 목록 피드 */
-.card-list {
-  padding: 10px 20px 90px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* 개별 카드 */
-.card {
-  background-color: #ffffff;
-  border-radius: 18px;
-  padding: 16px 18px;
-  border: 1px solid #edf2f7;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.game-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.3;
-}
-
-.badge {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 12px;
-  background-color: #f1f5f9;
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.card-info-box {
-  background-color: #f8fafc;
-  padding: 10px 14px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-}
-
-.info-label {
-  color: #64748b;
-}
-
-.info-value {
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 2px;
-}
-
-.star-rating {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.stars {
-  color: #f59e0b;
-  font-size: 16px;
-  letter-spacing: 1px;
-}
-
-.score-text {
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 600;
-}
-
-/* 플로팅 액션 버튼 (+) */
-.fab-btn {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(130px);
-  width: 54px;
-  height: 54px;
-  background-color: #1e293b;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  text-decoration: none;
-  font-size: 28px;
-  font-weight: 300;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
-  z-index: 20;
-}
-
-@media (max-width: 440px) {
-  .fab-btn {
-    left: auto;
-    right: 20px;
-    transform: none;
-  }
-}
-
-/* 서브 페이지 헤더 */
-.sub-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #edf2f7;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.nav-back {
-  text-decoration: none;
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.sub-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.header-dummy {
-  width: 40px;
-}
-
-/* 작성 폼 */
-.form-container {
-  padding: 20px;
-  flex: 1;
-}
-
-.input-group {
-  margin-bottom: 22px;
-}
-
-.input-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
-  margin-bottom: 8px;
-}
-
-.text-input {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background-color: #ffffff;
-  font-size: 14px;
-  color: #0f172a;
-  outline: none;
-}
-
-.text-input:focus {
-  border-color: #3b82f6;
-}
-
-/* 칩 버튼 */
-.chip-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip-item input {
-  display: none;
-}
-
-.chip-item span {
-  display: inline-block;
-  padding: 8px 14px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
-  cursor: pointer;
-}
-
-.chip-item input:checked + span {
-  background-color: #1e293b;
-  border-color: #1e293b;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-/* 난이도 점수 카드 (1~5점) */
-.score-card-group {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-}
-
-.score-card input {
-  display: none;
-}
-
-.score-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 2px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  cursor: pointer;
-}
-
-.score-digit {
-  font-size: 16px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.score-name {
-  font-size: 10px;
-  color: #94a3b8;
-  margin-top: 4px;
-}
-
-.score-card input:checked + .score-box {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
-}
-
-.score-card input:checked + .score-box .score-digit,
-.score-card input:checked + .score-box .score-name {
-  color: #2563eb;
-  font-weight: 600;
-}
-
-/* 하단 버튼 */
-.button-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 32px;
-}
-
-.btn {
-  flex: 1;
-  text-align: center;
-  padding: 14px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.btn-cancel {
-  background-color: #e2e8f0;
-  color: #475569;
-}
-
-.btn-save {
-  background-color: #1e293b;
-  color: #ffffff;
-}
+        if (result.status === "success") {
+          alert("성공적으로 저장되었습니다!");
+          window.location.href = "index.html";
+        } else {
+          alert("저장 실패: " + (result.message || ""));
+          saveBtn.disabled = false;
+          saveBtn.innerText = "저장하기";
+        }
+      } catch (err) {
+        alert("저장 통신 중 오류가 발생했습니다.");
+        saveBtn.disabled = false;
+        saveBtn.innerText = "저장하기";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -54,7 +54,7 @@
       </div>
     </section>
 
-    <!-- 기록 카드 목록 -->
+    <!-- 기록 카드 목록 피드 -->
     <main class="card-list" id="cardList">
       <div style="text-align: center; padding: 40px 0; color: #8b95a1; font-size: 14px;">
         기록을 불러오는 중입니다...
@@ -68,7 +68,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbybHJcSgR0ZyDOptjjZQUe2eYueDalbRK95z-25jmA1O3TWnCpdPBErHc_HionBNWSKuQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyJ4tOJInYvsGWUC9gKDLNLQM2kLkP3u_G-ZS4zaJizbOdGTICthfutBkcNgPz5WJnNIA/exec";
     
     let allRecords = [];
 
@@ -77,20 +77,21 @@
     const playerFilter = document.getElementById('playerFilter');
     const difficultyFilter = document.getElementById('difficultyFilter');
 
-    // 데이터 불러오기
+    // 스프레드시트 데이터 불러오기
     async function fetchRecords() {
       try {
         const res = await fetch(API_URL);
         const json = await res.json();
 
         if (json.status === "success") {
+          // 최신순 정렬 (역순)
           allRecords = json.data.reverse();
           renderCards(allRecords);
         } else {
           cardList.innerHTML = '<div style="text-align:center; padding:30px; color:#f04452;">데이터를 불러오는 데 실패했습니다.</div>';
         }
       } catch (err) {
-        cardList.innerHTML = '<div style="text-align:center; padding:30px; color:#f04452;">오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</div>';
+        cardList.innerHTML = '<div style="text-align:center; padding:30px; color:#f04452;">기록을 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.</div>';
       }
     }
 
@@ -132,7 +133,7 @@
       }).join('');
     }
 
-    // 검색 및 필터 로직
+    // 실시간 검색 및 필터링 로직
     function applyFilter() {
       const query = searchInput.value.toLowerCase().trim();
       const pVal = playerFilter.value;
