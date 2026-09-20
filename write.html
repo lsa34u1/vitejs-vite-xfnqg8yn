@@ -21,24 +21,24 @@
     <!-- 입력 폼 -->
     <main class="form-container">
       <form id="recordForm" class="glass-form-card">
-        <!-- 1. 보드게임명 (BGG 자동완성) -->
+        <!-- 1. 보드게임명 (실시간 BGG API 연동 자동완성) -->
         <div class="input-group">
           <div class="label-with-source">
             <label class="input-label" for="gameName">보드게임명 (Title)</label>
-            <span class="bgg-badge">BGG 공식 DB</span>
+            <span class="bgg-badge">BGG 실시간 연동</span>
           </div>
           <div class="autocomplete-wrapper">
             <input 
               type="text" 
               id="gameName" 
               class="text-input glass-input" 
-              placeholder="한글 또는 영문 입력 (예: Wingspan, 카탄...)" 
+              placeholder="영문 또는 한글 입력 (예: SETI, Brass, 카탄...)" 
               autocomplete="off"
               required
             >
             <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
           </div>
-          <p class="input-tip">* 영문/한글 1자 이상 입력 시 공식 명칭이 추천됩니다. (직접 입력 가능)</p>
+          <p class="input-tip">* 전 세계 BGG DB에서 실시간으로 검색됩니다. (직접 입력도 가능)</p>
         </div>
 
         <!-- 2. 인원 (2인 ~ 8인) -->
@@ -109,17 +109,19 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwgnPKokcM9NsFcqbQ4M5f_6TuhWwVtEwPdS-hmO-E7jmIieHBdU4nfgnWucHQgCrdjeA/exec";
 
-    // BGG 상위권 공식 영문 명칭 및 한글 검색어 데이터 세트
-    const BGG_GAMES_DB = [
+    // BGG 기본 캐시 및 주요 한글 별칭 매핑 데이터 (실시간 검색 보조용)
+    const LOCAL_FALLBACK_DB = [
       { name: "Wingspan", ko: "윙스팬", year: "2019" },
       { name: "Catan", ko: "카탄", year: "1995" },
       { name: "Terraforming Mars", ko: "테라포밍 마스 테포마", year: "2016" },
       { name: "Splendor", ko: "스플렌더", year: "2014" },
       { name: "Cascadia", ko: "카스카디아", year: "2021" },
       { name: "Harmonies", ko: "하모니즈", year: "2024" },
+      { name: "SETI: Search for Extraterrestrial Intelligence", ko: "세티 seti", year: "2024" },
+      { name: "National Economy", ko: "내셔널 이코노미", year: "2015" },
+      { name: "Brass: Birmingham", ko: "브라스 버밍엄", year: "2018" },
       { name: "Ark Nova", ko: "아크 노바 아크노바", year: "2021" },
       { name: "Dune: Imperium", ko: "듄 임페리움", year: "2020" },
-      { name: "Brass: Birmingham", ko: "브라스 버밍엄", year: "2018" },
       { name: "Gloomhaven", ko: "글룸헤이븐", year: "2017" },
       { name: "Gloomhaven: Jaws of the Lion", ko: "글룸헤이븐 사자의 턱", year: "2020" },
       { name: "Spirit Island", ko: "정령섬", year: "2017" },
@@ -188,9 +190,46 @@
     const form = document.getElementById('recordForm');
     const saveBtn = document.getElementById('saveBtn');
 
-    // 입력 즉시 필터링
+    let debounceTimer = null;
+
+    // BGG 공식 XML API 실시간 호출 함수
+    async function searchBggApi(query) {
+      const bggUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
+      // 브라우저 CORS 제약 우회를 위한 프록시 사용
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(bggUrl)}`;
+
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error("네트워크 응답 오류");
+      const data = await response.json();
+
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+      const items = xmlDoc.getElementsByTagName("item");
+
+      const results = [];
+      const limit = Math.min(items.length, 10);
+
+      for (let i = 0; i < limit; i++) {
+        const item = items[i];
+        const nameEl = item.getElementsByTagName("name")[0];
+        const yearEl = item.getElementsByTagName("yearpublished")[0];
+
+        if (nameEl) {
+          results.push({
+            name: nameEl.getAttribute("value"),
+            year: yearEl ? yearEl.getAttribute("value") : ""
+          });
+        }
+      }
+
+      return results;
+    }
+
+    // 입력 이벤트 처리 (디바운스 350ms 적용)
     input.addEventListener('input', function() {
-      const q = this.value.toLowerCase().trim();
+      const q = this.value.trim();
+
+      clearTimeout(debounceTimer);
 
       if (q.length === 0) {
         dropdown.style.display = 'none';
@@ -198,47 +237,69 @@
         return;
       }
 
-      const matches = BGG_GAMES_DB.filter(game => 
-        game.name.toLowerCase().includes(q) || (game.ko && game.ko.includes(q))
-      );
+      // 사용자가 글자를 타이핑하는 동안 로딩 표시
+      dropdown.innerHTML = '<div class="bgg-status">BGG에서 검색 중...</div>';
+      dropdown.style.display = 'block';
 
-      if (matches.length === 0) {
-        dropdown.innerHTML = '<div class="bgg-status">추천 목록에 없습니다. (직접 입력 후 등록 가능)</div>';
-        dropdown.style.display = 'block';
-        return;
-      }
+      debounceTimer = setTimeout(async () => {
+        let results = [];
 
-      dropdown.innerHTML = '';
-      const limit = Math.min(matches.length, 8);
+        // 1. BGG 공식 API 실시간 검색 시도
+        try {
+          results = await searchBggApi(q);
+        } catch (err) {
+          console.warn("BGG 실시간 API 호출 실패, 로컬 DB로 대체합니다.", err);
+        }
 
-      for (let i = 0; i < limit; i++) {
-        const item = matches[i];
-        const row = document.createElement("div");
-        row.className = "bgg-item";
-        row.innerHTML = `
-          <span class="bgg-game-name">${escapeHtml(item.name)}</span>
-          ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
-        `;
+        // 2. 검색 결과가 없거나 한글 검색어인 경우 로컬 DB 추가 매핑
+        const lowerQ = q.toLowerCase();
+        const localMatches = LOCAL_FALLBACK_DB.filter(game => 
+          game.name.toLowerCase().includes(lowerQ) || (game.ko && game.ko.includes(lowerQ))
+        );
 
-        row.addEventListener("click", function() {
-          input.value = item.name;
-          dropdown.style.display = 'none';
+        // 중복 제거 후 합치기
+        localMatches.forEach(item => {
+          if (!results.some(r => r.name.toLowerCase() === item.name.toLowerCase())) {
+            results.unshift({ name: item.name, year: item.year });
+          }
         });
 
-        dropdown.appendChild(row);
-      }
+        // 3. 화면 렌더링
+        if (results.length === 0) {
+          dropdown.innerHTML = '<div class="bgg-status">검색 결과가 없습니다. (직접 입력 등록 가능)</div>';
+          return;
+        }
 
-      dropdown.style.display = 'block';
+        dropdown.innerHTML = '';
+        const limit = Math.min(results.length, 8);
+
+        for (let i = 0; i < limit; i++) {
+          const item = results[i];
+          const row = document.createElement("div");
+          row.className = "bgg-item";
+          row.innerHTML = `
+            <span class="bgg-game-name">${escapeHtml(item.name)}</span>
+            ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
+          `;
+
+          row.addEventListener("click", function() {
+            input.value = item.name;
+            dropdown.style.display = 'none';
+          });
+
+          dropdown.appendChild(row);
+        }
+      }, 350);
     });
 
-    // 바깥 클릭 시 닫기
+    // 드롭다운 바깥 영역 클릭 시 닫기
     document.addEventListener('click', function(e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
       }
     });
 
-    // 스프레드시트 저장 (POST, Content-Type: text/plain)
+    // 스프레드시트 저장 (POST 전송)
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
