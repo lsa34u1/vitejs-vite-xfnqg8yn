@@ -3,294 +3,80 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>새 기록 작성 - My Shelf</title>
-  <link rel="stylesheet" href="style.css?v=16">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>새 글 쓰기</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- 헤더 -->
-    <header class="sub-header glass-panel">
-      <a href="index.html" class="nav-back">✕ 취소</a>
-      <h1 class="sub-title">새 게임 등록</h1>
-      <div class="header-dummy"></div>
+  <div class="container">
+    <header class="header">
+      <h1>새 글 쓰기</h1>
+      <a href="index.html" class="btn btn-secondary">목록으로</a>
     </header>
 
-    <!-- 입력 폼 -->
-    <main class="form-container">
-      <form id="recordForm" class="glass-form-card">
-        <!-- 1. 보드게임명 (BGG 자동완성) -->
-        <div class="input-group">
-          <div class="label-with-source">
-            <label class="input-label" for="gameName">보드게임명 (Title)</label>
-            <span class="bgg-badge">BGG 공식 DB</span>
-          </div>
-          <div class="autocomplete-wrapper">
-            <input 
-              type="text" 
-              id="gameName" 
-              class="text-input glass-input" 
-              placeholder="한글 또는 영문 입력 (예: Wingspan, 카탄...)" 
-              autocomplete="off"
-              required
-            >
-            <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
-          </div>
-          <p class="input-tip">* 영문/한글 1자 이상 입력 시 공식 명칭이 추천됩니다. (직접 입력 가능)</p>
+    <main>
+      <form id="writeForm" class="form-card">
+        <div class="form-group">
+          <label for="title">제목</label>
+          <input type="text" id="title" class="input-field" placeholder="제목을 입력하세요" required>
         </div>
 
-        <!-- 2. 인원 (2인 ~ 8인) -->
-        <div class="input-group">
-          <label class="input-label">인원 (2인~8인)</label>
-          <div class="chip-container">
-            <label class="chip-item"><input type="radio" name="players" value="2"><span>2인</span></label>
-            <label class="chip-item"><input type="radio" name="players" value="3"><span>3인</span></label>
-            <label class="chip-item"><input type="radio" name="players" value="4" checked><span>4인</span></label>
-            <label class="chip-item"><input type="radio" name="players" value="5"><span>5인</span></label>
-            <label class="chip-item"><input type="radio" name="players" value="6"><span>6인</span></label>
-            <label class="chip-item"><input type="radio" name="players" value="7"><span>7인</span></label>
-            <label class="chip-item"><input type="radio" name="players" value="8"><span>8인</span></label>
-          </div>
+        <div class="form-group">
+          <label for="author">작성자</label>
+          <input type="text" id="author" class="input-field" placeholder="작성자 이름" required>
         </div>
 
-        <!-- 3. 난이도 점수 (5점 만점) -->
-        <div class="input-group">
-          <label class="input-label">난이도 점수 (5점 만점)</label>
-          <div class="score-card-group">
-            <label class="score-card">
-              <input type="radio" name="difficulty" value="1">
-              <div class="score-box glass-score">
-                <span class="score-digit">1</span>
-                <span class="score-name">쉬움</span>
-              </div>
-            </label>
-            <label class="score-card">
-              <input type="radio" name="difficulty" value="2">
-              <div class="score-box glass-score">
-                <span class="score-digit">2</span>
-                <span class="score-name">약간 쉬움</span>
-              </div>
-            </label>
-            <label class="score-card">
-              <input type="radio" name="difficulty" value="3" checked>
-              <div class="score-box glass-score">
-                <span class="score-digit">3</span>
-                <span class="score-name">보통</span>
-              </div>
-            </label>
-            <label class="score-card">
-              <input type="radio" name="difficulty" value="4">
-              <div class="score-box glass-score">
-                <span class="score-digit">4</span>
-                <span class="score-name">어려움</span>
-              </div>
-            </label>
-            <label class="score-card">
-              <input type="radio" name="difficulty" value="5">
-              <div class="score-box glass-score">
-                <span class="score-digit">5</span>
-                <span class="score-name">최상</span>
-              </div>
-            </label>
-          </div>
+        <div class="form-group">
+          <label for="content">내용</label>
+          <textarea id="content" rows="8" class="input-field" placeholder="내용을 작성하세요"></textarea>
         </div>
 
-        <!-- 하단 액션 버튼 -->
-        <div class="button-group">
-          <a href="index.html" class="btn btn-cancel">취소</a>
-          <button type="submit" id="saveBtn" class="btn btn-save">저장하기</button>
+        <div class="btn-group">
+          <a href="index.html" class="btn btn-secondary">취소</a>
+          <button type="submit" id="submitBtn" class="btn btn-primary">등록하기</button>
         </div>
       </form>
     </main>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwgnPKokcM9NsFcqbQ4M5f_6TuhWwVtEwPdS-hmO-E7jmIieHBdU4nfgnWucHQgCrdjeA/exec";
+    const form = document.getElementById("writeForm");
+    const submitBtn = document.getElementById("submitBtn");
 
-    // BGG 상위권 공식 영문 명칭 및 한글 검색어 데이터 세트
-    const BGG_GAMES_DB = [
-      { name: "Wingspan", ko: "윙스팬", year: "2019" },
-      { name: "Catan", ko: "카탄", year: "1995" },
-      { name: "Terraforming Mars", ko: "테라포밍 마스 테포마", year: "2016" },
-      { name: "Splendor", ko: "스플렌더", year: "2014" },
-      { name: "Cascadia", ko: "카스카디아", year: "2021" },
-      { name: "Harmonies", ko: "하모니즈", year: "2024" },
-      { name: "Ark Nova", ko: "아크 노바 아크노바", year: "2021" },
-      { name: "Dune: Imperium", ko: "듄 임페리움", year: "2020" },
-      { name: "Brass: Birmingham", ko: "브라스 버밍엄", year: "2018" },
-      { name: "Gloomhaven", ko: "글룸헤이븐", year: "2017" },
-      { name: "Gloomhaven: Jaws of the Lion", ko: "글룸헤이븐 사자의 턱", year: "2020" },
-      { name: "Spirit Island", ko: "정령섬", year: "2017" },
-      { name: "Great Western Trail", ko: "그레이트 웨스턴 트레일 그웨트", year: "2016" },
-      { name: "Scout", ko: "스카우트", year: "2019" },
-      { name: "The Castles of Burgundy", ko: "버건디의 성", year: "2011" },
-      { name: "Concordia", ko: "콘코르디아", year: "2013" },
-      { name: "Lost Ruins of Arnak", ko: "아르낙의 잊혀진 유적 아르낙", year: "2020" },
-      { name: "Azul", ko: "아줄", year: "2017" },
-      { name: "7 Wonders Duel", ko: "세븐원더스 듀얼 세듀", year: "2015" },
-      { name: "7 Wonders", ko: "세븐원더스", year: "2010" },
-      { name: "Heat: Pedal to the Metal", ko: "히트 페달 투 더 메탈 히트", year: "2022" },
-      { name: "Root", ko: "루트", year: "2018" },
-      { name: "The Crew: The Quest for Planet Nine", ko: "스페이스 크루 디크루 행성 탐사", year: "2019" },
-      { name: "The Crew: Mission Deep Sea", ko: "스페이스 크루 심해로의 임무", year: "2021" },
-      { name: "Carcassonne", ko: "카르카손", year: "2000" },
-      { name: "Pandemic", ko: "팬데믹", year: "2008" },
-      { name: "Pandemic Legacy: Season 1", ko: "팬데믹 레거시 시즌1", year: "2015" },
-      { name: "Clank!: A Deck-Building Adventure", ko: "클랭크", year: "2016" },
-      { name: "Clank! Catacombs", ko: "클랭크 카타콤", year: "2022" },
-      { name: "Agricola", ko: "아그리콜라", year: "2007" },
-      { name: "Patchwork", ko: "패치워크", year: "2014" },
-      { name: "Everdell", ko: "에버델", year: "2018" },
-      { name: "Blood Rage", ko: "블러드 레이지", year: "2015" },
-      { name: "Scythe", ko: "사이쓰", year: "2016" },
-      { name: "Viticulture Essential Edition", ko: "비티컬처", year: "2015" },
-      { name: "Nemesis", ko: "네메시스", year: "2018" },
-      { name: "Pax Pamir: Second Edition", ko: "팍스 파미르", year: "2019" },
-      { name: "Tzolk'in: The Mayan Calendar", ko: "촐킨 마야의 달력 촐킨", year: "2012" },
-      { name: "Five Tribes", ko: "오부족 파이브 트라이브스", year: "2014" },
-      { name: "A Feast for Odin", ko: "오딘을 위하여", year: "2016" },
-      { name: "Power Grid", ko: "파워그리드", year: "2004" },
-      { name: "Puerto Rico", ko: "푸에르토 리코 푸에르토리코 푸코", year: "2002" },
-      { name: "Dominion", ko: "도미니언", year: "2008" },
-      { name: "Ticket to Ride", ko: "티켓 투 라이드 티투라", year: "2004" },
-      { name: "Ticket to Ride: Europe", ko: "티켓 투 라이드 유럽", year: "2005" },
-      { name: "Love Letter", ko: "러브레터", year: "2012" },
-      { name: "The Resistance: Avalon", ko: "레지스탕스 아발론 아발론", year: "2012" },
-      { name: "Secret Hitler", ko: "시크릿 히틀러", year: "2016" },
-      { name: "Codenames", ko: "코드네임", year: "2015" },
-      { name: "Codenames: Duet", ko: "코드네임 듀엣", year: "2017" },
-      { name: "Dixit", ko: "딕싯", year: "2008" },
-      { name: "Just One", ko: "저스트 원", year: "2018" },
-      { name: "Decrypto", ko: "디크립토", year: "2018" },
-      { name: "Skull", ko: "스컬", year: "2011" },
-      { name: "Challengers!", ko: "챌린저스", year: "2022" },
-      { name: "Sea Salt & Paper", ko: "바다 소금 종이 씨솔트앤페이퍼", year: "2022" },
-      { name: "Trio", ko: "나나 트리오", year: "2021" },
-      { name: "Dorfromantik: The Board Game", ko: "도르프롬란틱 보드게임", year: "2022" },
-      { name: "Earth", ko: "어스", year: "2023" },
-      { name: "Darwin's Journey", ko: "다윈의 여정", year: "2023" },
-      { name: "Arkham Horror: The Card Game", ko: "아컴호러 카드게임 아딱", year: "2016" },
-      { name: "Marvel Champions: The Card Game", ko: "마블 챔피언스 카드게임", year: "2019" },
-      { name: "Mansions of Madness: Second Edition", ko: "광기의 저택 2판 광저", year: "2016" },
-      { name: "Unmatched: Battle of Legends, Volume One", ko: "언매치드", year: "2019" },
-      { name: "Rummikub", ko: "루미큐브", year: "1977" },
-      { name: "Halli Galli", ko: "할리갈리", year: "1990" },
-      { name: "Bang!", ko: "뱅", year: "2002" },
-      { name: "Bohnanza", ko: "보난자", year: "1997" },
-      { name: "Clue", ko: "클루", year: "1949" },
-      { name: "Coda", ko: "다빈치 코드 다빈치코드", year: "2002" }
-    ];
-
-    const input = document.getElementById('gameName');
-    const dropdown = document.getElementById('bggResults');
-    const form = document.getElementById('recordForm');
-    const saveBtn = document.getElementById('saveBtn');
-
-    // 입력 즉시 필터링
-    input.addEventListener('input', function() {
-      const q = this.value.toLowerCase().trim();
-
-      if (q.length === 0) {
-        dropdown.style.display = 'none';
-        dropdown.innerHTML = '';
-        return;
-      }
-
-      const matches = BGG_GAMES_DB.filter(game => 
-        game.name.toLowerCase().includes(q) || (game.ko && game.ko.includes(q))
-      );
-
-      if (matches.length === 0) {
-        dropdown.innerHTML = '<div class="bgg-status">추천 목록에 없습니다. (직접 입력 후 등록 가능)</div>';
-        dropdown.style.display = 'block';
-        return;
-      }
-
-      dropdown.innerHTML = '';
-      const limit = Math.min(matches.length, 8);
-
-      for (let i = 0; i < limit; i++) {
-        const item = matches[i];
-        const row = document.createElement("div");
-        row.className = "bgg-item";
-        row.innerHTML = `
-          <span class="bgg-game-name">${escapeHtml(item.name)}</span>
-          ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
-        `;
-
-        row.addEventListener("click", function() {
-          input.value = item.name;
-          dropdown.style.display = 'none';
-        });
-
-        dropdown.appendChild(row);
-      }
-
-      dropdown.style.display = 'block';
-    });
-
-    // 바깥 클릭 시 닫기
-    document.addEventListener('click', function(e) {
-      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.style.display = 'none';
-      }
-    });
-
-    // 스프레드시트 저장 (POST, Content-Type: text/plain)
-    form.addEventListener('submit', async function(e) {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const gameName = input.value.trim();
-      const players = document.querySelector('input[name="players"]:checked')?.value || "4";
-      const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value || "3";
+      const title = document.getElementById("title").value.trim();
+      const author = document.getElementById("author").value.trim();
+      const content = document.getElementById("content").value.trim();
 
-      if (!gameName) {
-        alert("보드게임명을 입력해 주세요.");
-        return;
-      }
-
-      saveBtn.disabled = true;
-      saveBtn.innerText = "저장 중...";
+      submitBtn.disabled = true;
+      submitBtn.innerText = "저장 중...";
 
       try {
-        const response = await fetch(API_URL, {
+        const response = await fetch("/api/posts", {
           method: "POST",
           headers: {
-            "Content-Type": "text/plain;charset=utf-8"
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            gameName: gameName,
-            players: players,
-            difficulty: difficulty
-          })
+          body: JSON.stringify({ title, author, content }),
         });
 
         const result = await response.json();
 
         if (result.status === "success") {
-          alert("성공적으로 저장되었습니다!");
+          alert("성공적으로 게시되었습니다!");
           window.location.href = "index.html";
         } else {
-          alert("저장 실패: " + (result.message || ""));
-          saveBtn.disabled = false;
-          saveBtn.innerText = "저장하기";
+          alert("저장 실패: " + result.message);
+          submitBtn.disabled = false;
+          submitBtn.innerText = "등록하기";
         }
       } catch (err) {
-        alert("저장 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
-        saveBtn.disabled = false;
-        saveBtn.innerText = "저장하기";
+        alert("통신 중 오류가 발생했습니다.");
+        submitBtn.disabled = false;
+        submitBtn.innerText = "등록하기";
       }
     });
-
-    function escapeHtml(text) {
-      if (!text) return "";
-      return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
   </script>
 </body>
 </html>

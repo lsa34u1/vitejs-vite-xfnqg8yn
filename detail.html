@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>게시글 보기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>게시글 상세</h1>
+      <a href="index.html" class="btn btn-secondary">목록으로</a>
+    </header>
+
+    <main>
+      <div id="loading" class="status-msg">게시글을 불러오는 중...</div>
+      <article id="postDetail" class="detail-card" style="display: none;">
+        <h2 id="detailTitle" class="detail-title"></h2>
+        <div class="detail-meta">
+          <span>작성자: <b id="detailAuthor"></b></span>
+          <span>작성일: <span id="detailDate"></span></span>
+        </div>
+        <div id="detailContent" class="detail-content"></div>
+      </article>
+    </main>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get("id");
+
+    async function fetchDetail() {
+      const loadingEl = document.getElementById("loading");
+      const postCardEl = document.getElementById("postDetail");
+
+      if (!postId) {
+        loadingEl.innerText = "잘못된 접근입니다. (글 ID 누락)";
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/post?id=${encodeURIComponent(postId)}`);
+        const json = await response.json();
+
+        if (json.status === "success") {
+          loadingEl.style.display = "none";
+          postCardEl.style.display = "block";
+
+          document.getElementById("detailTitle").innerText = json.data.title;
+          document.getElementById("detailAuthor").innerText = json.data.author;
+          document.getElementById("detailDate").innerText = json.data.date;
+          document.getElementById("detailContent").innerText = json.data.content || "(내용이 없습니다.)";
+        } else {
+          loadingEl.innerText = "글을 불러오지 못했습니다: " + json.message;
+        }
+      } catch (err) {
+        loadingEl.innerText = "네트워크 통신 중 오류가 발생했습니다.";
+      }
+    }
+
+    fetchDetail();
+  </script>
+</body>
+</html>
