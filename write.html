@@ -109,7 +109,7 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwgnPKokcM9NsFcqbQ4M5f_6TuhWwVtEwPdS-hmO-E7jmIieHBdU4nfgnWucHQgCrdjeA/exec";
 
-    // BGG 기본 캐시 및 주요 한글 별칭 매핑 데이터 (실시간 검색 보조용)
+    // 기본 로컬 DB 및 한글 별칭 목록
     const LOCAL_FALLBACK_DB = [
       { name: "Wingspan", ko: "윙스팬", year: "2019" },
       { name: "Catan", ko: "카탄", year: "1995" },
@@ -191,23 +191,60 @@
     const saveBtn = document.getElementById('saveBtn');
 
     let debounceTimer = null;
+    let currentSearchId = 0; // 최신 검색 요청만 유효하게 처리하는 식별값
 
-    // BGG 공식 XML API 실시간 호출 함수
+    // 타임아웃 지원 fetch
+    async function fetchWithTimeout(resource, options = {}) {
+      const { timeout = 3500 } = options;
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(resource, {
+          ...options,
+          signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+      } catch (err) {
+        clearTimeout(id);
+        throw err;
+      }
+    }
+
+    // BGG 공식 XML API 호출 (1차: allorigins, 실패 시 2차: codetabs)
     async function searchBggApi(query) {
       const bggUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
-      // 브라우저 CORS 제약 우회를 위한 프록시 사용
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(bggUrl)}`;
+      let xmlText = "";
 
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error("네트워크 응답 오류");
-      const data = await response.json();
+      // 1차 시도
+      try {
+        const proxy1 = `https://api.allorigins.win/get?url=${encodeURIComponent(bggUrl)}`;
+        const res = await fetchWithTimeout(proxy1, { timeout: 3000 });
+        if (res.ok) {
+          const json = await res.json();
+          xmlText = json.contents || "";
+        }
+      } catch (e) {
+        // 1차 실패 시 2차 시도
+        try {
+          const proxy2 = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(bggUrl)}`;
+          const res = await fetchWithTimeout(proxy2, { timeout: 3000 });
+          if (res.ok) {
+            xmlText = await res.text();
+          }
+        } catch (err2) {
+          throw new Error("모든 프록시 호출 실패");
+        }
+      }
+
+      if (!xmlText) throw new Error("데이터 수신 실패");
 
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
       const items = xmlDoc.getElementsByTagName("item");
 
       const results = [];
-      const limit = Math.min(items.length, 10);
+      const limit = Math.min(items.length, 12);
 
       for (let i = 0; i < limit; i++) {
         const item = items[i];
@@ -225,10 +262,39 @@
       return results;
     }
 
-    // 입력 이벤트 처리 (디바운스 350ms 적용)
+    // 결과 렌더링 헬퍼 함수
+    function renderDropdownItems(list) {
+      if (!list || list.length === 0) {
+        dropdown.innerHTML = '<div class="bgg-status">검색 결과가 없습니다. (직접 입력 등록 가능)</div>';
+        dropdown.style.display = 'block';
+        return;
+      }
+
+      dropdown.innerHTML = '';
+      const limit = Math.min(list.length, 8);
+
+      for (let i = 0; i < limit; i++) {
+        const item = list[i];
+        const row = document.createElement("div");
+        row.className = "bgg-item";
+        row.innerHTML = `
+          <span class="bgg-game-name">${escapeHtml(item.name)}</span>
+          ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
+        `;
+
+        row.addEventListener("click", function() {
+          input.value = item.name;
+          dropdown.style.display = 'none';
+        });
+
+        dropdown.appendChild(row);
+      }
+      dropdown.style.display = 'block';
+    }
+
+    // 입력 이벤트 처리
     input.addEventListener('input', function() {
       const q = this.value.trim();
-
       clearTimeout(debounceTimer);
 
       if (q.length === 0) {
@@ -237,59 +303,45 @@
         return;
       }
 
-      // 사용자가 글자를 타이핑하는 동안 로딩 표시
-      dropdown.innerHTML = '<div class="bgg-status">BGG에서 검색 중...</div>';
-      dropdown.style.display = 'block';
+      // 1. 대기 시간 없이 로컬 DB 매칭 결과를 즉시 표시
+      const lowerQ = q.toLowerCase();
+      const localMatches = LOCAL_FALLBACK_DB.filter(game => 
+        game.name.toLowerCase().includes(lowerQ) || (game.ko && game.ko.includes(lowerQ))
+      );
+
+      if (localMatches.length > 0) {
+        renderDropdownItems(localMatches);
+      } else {
+        dropdown.innerHTML = '<div class="bgg-status">BGG에서 실시간 검색 중...</div>';
+        dropdown.style.display = 'block';
+      }
+
+      // 2. 실시간 BGG API 비동기 조회 (300ms 디바운스 적용)
+      const thisSearchId = ++currentSearchId;
 
       debounceTimer = setTimeout(async () => {
-        let results = [];
+        let apiResults = [];
 
-        // 1. BGG 공식 API 실시간 검색 시도
         try {
-          results = await searchBggApi(q);
+          apiResults = await searchBggApi(q);
         } catch (err) {
-          console.warn("BGG 실시간 API 호출 실패, 로컬 DB로 대체합니다.", err);
+          console.warn("실시간 API 조회 실패, 현재 결과 유지:", err);
         }
 
-        // 2. 검색 결과가 없거나 한글 검색어인 경우 로컬 DB 추가 매핑
-        const lowerQ = q.toLowerCase();
-        const localMatches = LOCAL_FALLBACK_DB.filter(game => 
-          game.name.toLowerCase().includes(lowerQ) || (game.ko && game.ko.includes(lowerQ))
-        );
+        // 사용자가 그사이 검색어를 더 입력했으면 이전 응답 무시
+        if (thisSearchId !== currentSearchId) return;
 
-        // 중복 제거 후 합치기
-        localMatches.forEach(item => {
-          if (!results.some(r => r.name.toLowerCase() === item.name.toLowerCase())) {
-            results.unshift({ name: item.name, year: item.year });
+        // BGG 결과와 로컬 결과를 결합 (중복 제거)
+        const combined = [...apiResults];
+
+        localMatches.forEach(loc => {
+          if (!combined.some(c => c.name.toLowerCase() === loc.name.toLowerCase())) {
+            combined.unshift({ name: loc.name, year: loc.year });
           }
         });
 
-        // 3. 화면 렌더링
-        if (results.length === 0) {
-          dropdown.innerHTML = '<div class="bgg-status">검색 결과가 없습니다. (직접 입력 등록 가능)</div>';
-          return;
-        }
-
-        dropdown.innerHTML = '';
-        const limit = Math.min(results.length, 8);
-
-        for (let i = 0; i < limit; i++) {
-          const item = results[i];
-          const row = document.createElement("div");
-          row.className = "bgg-item";
-          row.innerHTML = `
-            <span class="bgg-game-name">${escapeHtml(item.name)}</span>
-            ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
-          `;
-
-          row.addEventListener("click", function() {
-            input.value = item.name;
-            dropdown.style.display = 'none';
-          });
-
-          dropdown.appendChild(row);
-        }
-      }, 350);
+        renderDropdownItems(combined);
+      }, 300);
     });
 
     // 드롭다운 바깥 영역 클릭 시 닫기
@@ -299,7 +351,7 @@
       }
     });
 
-    // 스프레드시트 저장 (POST 전송)
+    // 스프레드시트 저장 (POST)
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
