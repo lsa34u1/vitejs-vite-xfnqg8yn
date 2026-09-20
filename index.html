@@ -24,12 +24,12 @@
     <section class="filter-section">
       <div class="search-box">
         <span class="search-icon">🔍</span>
-        <input type="text" placeholder="Search games in this shelf..." readonly>
+        <input type="text" id="searchInput" placeholder="Search games in this shelf...">
       </div>
 
       <div class="filter-row">
         <div class="select-wrapper">
-          <select name="player-filter">
+          <select id="playerFilter">
             <option value="">인원 전체</option>
             <option value="2">2인</option>
             <option value="3">3인</option>
@@ -42,7 +42,7 @@
         </div>
 
         <div class="select-wrapper">
-          <select name="difficulty-filter">
+          <select id="difficultyFilter">
             <option value="">난이도 전체</option>
             <option value="1">난이도 1점</option>
             <option value="2">난이도 2점</option>
@@ -54,91 +54,11 @@
       </div>
     </section>
 
-    <!-- 기록 카드 목록 -->
-    <main class="card-list">
-      <!-- 예시 카드 1 -->
-      <article class="card">
-        <div class="card-header">
-          <h2 class="game-title">테라포밍 마스 (Terraforming Mars)</h2>
-          <span class="badge">난이도 4</span>
-        </div>
-        <div class="card-info-box">
-          <div class="info-row">
-            <span class="info-label">📅 플레이 날짜</span>
-            <span class="info-value">2026.09.18</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">👥 플레이 인원</span>
-            <span class="info-value">4인</span>
-          </div>
-        </div>
-        <div class="card-footer">
-          <div class="star-rating">
-            <span class="stars">★★★★☆</span>
-            <span class="score-text">4점</span>
-          </div>
-          <div class="card-actions">
-            <button type="button" class="btn-action">수정</button>
-            <button type="button" class="btn-action btn-delete">삭제</button>
-          </div>
-        </div>
-      </article>
-
-      <!-- 예시 카드 2 -->
-      <article class="card">
-        <div class="card-header">
-          <h2 class="game-title">스플렌더 (Splendor)</h2>
-          <span class="badge">난이도 2</span>
-        </div>
-        <div class="card-info-box">
-          <div class="info-row">
-            <span class="info-label">📅 플레이 날짜</span>
-            <span class="info-value">2026.09.12</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">👥 플레이 인원</span>
-            <span class="info-value">3인</span>
-          </div>
-        </div>
-        <div class="card-footer">
-          <div class="star-rating">
-            <span class="stars">★★☆☆☆</span>
-            <span class="score-text">2점</span>
-          </div>
-          <div class="card-actions">
-            <button type="button" class="btn-action">수정</button>
-            <button type="button" class="btn-action btn-delete">삭제</button>
-          </div>
-        </div>
-      </article>
-
-      <!-- 예시 카드 3 -->
-      <article class="card">
-        <div class="card-header">
-          <h2 class="game-title">카스카디아 (Cascadia)</h2>
-          <span class="badge">난이도 3</span>
-        </div>
-        <div class="card-info-box">
-          <div class="info-row">
-            <span class="info-label">📅 플레이 날짜</span>
-            <span class="info-value">2026.09.05</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">👥 플레이 인원</span>
-            <span class="info-value">2인</span>
-          </div>
-        </div>
-        <div class="card-footer">
-          <div class="star-rating">
-            <span class="stars">★★★☆☆</span>
-            <span class="score-text">3점</span>
-          </div>
-          <div class="card-actions">
-            <button type="button" class="btn-action">수정</button>
-            <button type="button" class="btn-action btn-delete">삭제</button>
-          </div>
-        </div>
-      </article>
+    <!-- 기록 카드 목록 피드 -->
+    <main class="card-list" id="cardList">
+      <div style="text-align: center; padding: 40px 0; color: #8b95a1; font-size: 14px;">
+        기록을 불러오는 중입니다...
+      </div>
     </main>
 
     <!-- 플로팅 액션 버튼 (+) -->
@@ -146,5 +66,102 @@
       <span>+</span>
     </a>
   </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbybHJcSgR0ZyDOptjjZQUe2eYueDalbRK95z-25jmA1O3TWnCpdPBErHc_HionBNWSKuQ/exec";
+    
+    let allRecords = [];
+
+    const cardList = document.getElementById('cardList');
+    const searchInput = document.getElementById('searchInput');
+    const playerFilter = document.getElementById('playerFilter');
+    const difficultyFilter = document.getElementById('difficultyFilter');
+
+    // 스프레드시트 데이터 불러오기
+    async function fetchRecords() {
+      try {
+        const res = await fetch(API_URL);
+        const json = await res.json();
+
+        if (json.status === "success") {
+          // 최신 기록이 맨 위에 오도록 역순 정렬
+          allRecords = json.data.reverse();
+          renderCards(allRecords);
+        } else {
+          cardList.innerHTML = '<div style="text-align:center; padding:30px; color:#f04452;">데이터를 불러오는 데 실패했습니다.</div>';
+        }
+      } catch (err) {
+        cardList.innerHTML = '<div style="text-align:center; padding:30px; color:#f04452;">오류가 발생했습니다. Apps Script 배포 설정을 확인해 주세요.</div>';
+      }
+    }
+
+    // 카드 목록 렌더링
+    function renderCards(records) {
+      if (records.length === 0) {
+        cardList.innerHTML = '<div style="text-align: center; padding: 40px 0; color: #8b95a1; font-size: 14px;">기록된 보드게임이 없습니다.</div>';
+        return;
+      }
+
+      cardList.innerHTML = records.map(item => {
+        const diffNum = parseInt(item.difficulty, 10) || 0;
+        const stars = "★".repeat(diffNum) + "☆".repeat(Math.max(0, 5 - diffNum));
+        
+        return `
+          <article class="card">
+            <div class="card-header">
+              <h2 class="game-title">${escapeHtml(item.gameName)}</h2>
+              <span class="badge">난이도 ${item.difficulty}</span>
+            </div>
+            <div class="card-info-box">
+              <div class="info-row">
+                <span class="info-label">📅 플레이 날짜</span>
+                <span class="info-value">${escapeHtml(item.date)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">👥 플레이 인원</span>
+                <span class="info-value">${escapeHtml(item.players)}인</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="star-rating">
+                <span class="stars">${stars}</span>
+                <span class="score-text">${item.difficulty}점</span>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    // 검색창 및 인원/난이도 조건 필터
+    function applyFilter() {
+      const query = searchInput.value.toLowerCase().trim();
+      const pVal = playerFilter.value;
+      const dVal = difficultyFilter.value;
+
+      const filtered = allRecords.filter(item => {
+        const matchesName = !query || String(item.gameName).toLowerCase().includes(query);
+        const matchesPlayer = !pVal || String(item.players) === String(pVal);
+        const matchesDiff = !dVal || String(item.difficulty) === String(dVal);
+        return matchesName && matchesPlayer && matchesDiff;
+      });
+
+      renderCards(filtered);
+    }
+
+    searchInput.addEventListener('input', applyFilter);
+    playerFilter.addEventListener('change', applyFilter);
+    difficultyFilter.addEventListener('change', applyFilter);
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    fetchRecords();
+  </script>
 </body>
 </html>

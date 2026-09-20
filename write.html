@@ -20,8 +20,8 @@
 
     <!-- 작성 폼 -->
     <main class="form-container">
-      <form action="index.html" method="get">
-        <!-- 1. 보드게임명 (BGG 자동완성 검색 연동) -->
+      <form id="recordForm">
+        <!-- 1. 보드게임명 (BGG 자동완성 검색) -->
         <div class="input-group">
           <div class="label-with-source">
             <label class="input-label" for="gameName">보드게임명</label>
@@ -34,24 +34,14 @@
               class="text-input" 
               placeholder="영문 또는 한글 게임명 입력 (예: Catan)" 
               autocomplete="off"
+              required
             >
             <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
           </div>
-          <p class="input-tip">* 입력을 시작하면 BGG(BoardGameGeek) 공식 등록 이름이 추천됩니다.</p>
+          <p class="input-tip">* 보드게임긱(BoardGameGeek) 공식 명칭 목록이 추천됩니다.</p>
         </div>
 
-        <!-- 2. 플레이 날짜 -->
-        <div class="input-group">
-          <label class="input-label" for="playDate">플레이 날짜</label>
-          <input 
-            type="date" 
-            id="playDate" 
-            class="text-input" 
-            value="2026-09-20"
-          >
-        </div>
-
-        <!-- 3. 인원 (2인 ~ 8인) -->
+        <!-- 2. 플레이 인원 (2인 ~ 8인) -->
         <div class="input-group">
           <label class="input-label">인원 (2인~8인)</label>
           <div class="chip-container">
@@ -65,7 +55,7 @@
           </div>
         </div>
 
-        <!-- 4. 난이도 점수 (5점 만점) -->
+        <!-- 3. 난이도 점수 (5점 만점) -->
         <div class="input-group">
           <label class="input-label">난이도 점수 (5점 만점)</label>
           <div class="score-card-group">
@@ -110,14 +100,16 @@
         <!-- 하단 버튼 -->
         <div class="button-group">
           <a href="index.html" class="btn btn-cancel">취소</a>
-          <a href="index.html" class="btn btn-save">저장하기</a>
+          <button type="submit" id="saveBtn" class="btn btn-save" style="border: none;">저장하기</button>
         </div>
       </form>
     </main>
   </div>
 
-  <!-- BGG 자동완성 스크립트 -->
   <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbybHJcSgR0ZyDOptjjZQUe2eYueDalbRK95z-25jmA1O3TWnCpdPBErHc_HionBNWSKuQ/exec";
+
+    // BGG 자동완성 검색 기능
     const input = document.getElementById('gameName');
     const dropdown = document.getElementById('bggResults');
     let timer = null;
@@ -132,7 +124,6 @@
         return;
       }
 
-      // 입력 후 400ms 대기 후 검색 요청 (과도한 호출 방지)
       timer = setTimeout(() => {
         searchBGG(query);
       }, 400);
@@ -159,7 +150,6 @@
           return;
         }
 
-        // 상위 6개 결과 추출
         const maxResults = Math.min(items.length, 6);
         for (let i = 0; i < maxResults; i++) {
           const item = items[i];
@@ -188,10 +178,58 @@
       }
     }
 
-    // 바깥 영역 터치 시 드롭다운 닫기
     document.addEventListener('click', function(e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
+      }
+    });
+
+    // 스프레드시트에 저장 (POST 요청)
+    const form = document.getElementById('recordForm');
+    const saveBtn = document.getElementById('saveBtn');
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const gameName = input.value.trim();
+      const players = document.querySelector('input[name="players"]:checked')?.value || "4";
+      const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value || "3";
+
+      if (!gameName) {
+        alert("보드게임명을 입력해 주세요.");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.innerText = "저장 중...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify({
+            gameName: gameName,
+            players: players,
+            difficulty: difficulty
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success") {
+          alert("저장되었습니다!");
+          window.location.href = "index.html";
+        } else {
+          alert("저장에 실패했습니다: " + (result.message || ""));
+          saveBtn.disabled = false;
+          saveBtn.innerText = "저장하기";
+        }
+      } catch (err) {
+        alert("통신 중 오류가 발생했습니다.");
+        saveBtn.disabled = false;
+        saveBtn.innerText = "저장하기";
       }
     });
   </script>
