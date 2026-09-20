@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>내 보드게임 다이어리 (My Shelf)</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -53,7 +53,7 @@
       </div>
     </section>
 
-    <!-- 격자(Grid) 카드 선반 피드 -->
+    <!-- 사진 영역이 제거된 깔끔한 2열 격자 선반 피드 -->
     <main class="grid-shelf" id="cardList">
       <div class="status-msg">기록을 불러오는 중입니다...</div>
     </main>
@@ -74,7 +74,7 @@
     const playerFilter = document.getElementById('playerFilter');
     const difficultyFilter = document.getElementById('difficultyFilter');
 
-    // 데이터 불러오기
+    // Google 스프레드시트 데이터 불러오기
     async function fetchRecords() {
       try {
         const res = await fetch(API_URL);
@@ -91,7 +91,7 @@
       }
     }
 
-    // 카드 목록 격자 렌더링 (사진 제거)
+    // 카드 렌더링 (사진 및 썸네일 영역 완전 제거)
     function renderCards(records) {
       if (records.length === 0) {
         cardList.innerHTML = '<div class="status-msg">기록된 보드게임이 없습니다.</div>';
@@ -126,7 +126,7 @@
       }).join('');
     }
 
-    // 검색 및 필터 로직
+    // 실시간 검색 및 필터링 로직
     function applyFilter() {
       const query = searchInput.value.toLowerCase().trim();
       const pVal = playerFilter.value;
