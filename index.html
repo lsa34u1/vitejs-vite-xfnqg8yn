@@ -12,7 +12,7 @@
 <body>
   <div class="app-container">
     <!-- 상단 헤더 -->
-    <header class="header">
+    <header class="header glass-panel">
       <div class="logo-area">
         <span class="logo-icon">🎲</span>
         <h1 class="logo-title">My Shelf</h1>
@@ -22,13 +22,13 @@
 
     <!-- 검색 및 필터 바 -->
     <section class="filter-section">
-      <div class="search-box">
+      <div class="search-box glass-input">
         <span class="search-icon">🔍</span>
         <input type="text" id="searchInput" placeholder="Search games in this shelf...">
       </div>
 
       <div class="filter-row">
-        <div class="select-wrapper">
+        <div class="select-wrapper glass-select">
           <select id="playerFilter">
             <option value="">인원 전체</option>
             <option value="2">2인</option>
@@ -41,7 +41,7 @@
           </select>
         </div>
 
-        <div class="select-wrapper">
+        <div class="select-wrapper glass-select">
           <select id="difficultyFilter">
             <option value="">난이도 전체</option>
             <option value="1">난이도 1점</option>
@@ -54,11 +54,9 @@
       </div>
     </section>
 
-    <!-- 기록 카드 목록 피드 -->
-    <main class="card-list" id="cardList">
-      <div style="text-align: center; padding: 40px 0; color: #8b95a1; font-size: 14px;">
-        기록을 불러오는 중입니다...
-      </div>
+    <!-- 메인 격자(Grid) 카드 선반 피드 -->
+    <main class="grid-shelf" id="cardList">
+      <div class="status-msg">기록을 불러오는 중입니다...</div>
     </main>
 
     <!-- 플로팅 액션 버튼 (+) -->
@@ -77,28 +75,27 @@
     const playerFilter = document.getElementById('playerFilter');
     const difficultyFilter = document.getElementById('difficultyFilter');
 
-    // 스프레드시트 데이터 불러오기
+    // 데이터 불러오기
     async function fetchRecords() {
       try {
         const res = await fetch(API_URL);
         const json = await res.json();
 
         if (json.status === "success") {
-          // 최신순 정렬 (역순)
           allRecords = json.data.reverse();
           renderCards(allRecords);
         } else {
-          cardList.innerHTML = '<div style="text-align:center; padding:30px; color:#f04452;">데이터를 불러오는 데 실패했습니다.</div>';
+          cardList.innerHTML = '<div class="status-msg status-err">데이터를 불러오는 데 실패했습니다.</div>';
         }
       } catch (err) {
-        cardList.innerHTML = '<div style="text-align:center; padding:30px; color:#f04452;">기록을 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.</div>';
+        cardList.innerHTML = '<div class="status-msg status-err">오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</div>';
       }
     }
 
-    // 카드 목록 렌더링
+    // 격자 카드 렌더링
     function renderCards(records) {
       if (records.length === 0) {
-        cardList.innerHTML = '<div style="text-align: center; padding: 40px 0; color: #8b95a1; font-size: 14px;">기록된 보드게임이 없습니다.</div>';
+        cardList.innerHTML = '<div class="status-msg">기록된 보드게임이 없습니다.</div>';
         return;
       }
 
@@ -107,25 +104,19 @@
         const stars = "★".repeat(diffNum) + "☆".repeat(Math.max(0, 5 - diffNum));
         
         return `
-          <article class="card">
-            <div class="card-header">
+          <article class="grid-card glass-card">
+            <div class="card-thumb">
+              <span class="card-thumb-icon">🎲</span>
+              <span class="badge-overlay">${item.difficulty} / 5</span>
+            </div>
+            <div class="card-content">
               <h2 class="game-title">${escapeHtml(item.gameName)}</h2>
-              <span class="badge">난이도 ${item.difficulty}</span>
-            </div>
-            <div class="card-info-box">
-              <div class="info-row">
-                <span class="info-label">📅 플레이 날짜</span>
-                <span class="info-value">${escapeHtml(item.date)}</span>
+              <div class="meta-row">
+                <span class="meta-tag">👥 ${escapeHtml(item.players)}인</span>
+                <span class="meta-tag">📅 ${escapeHtml(item.date)}</span>
               </div>
-              <div class="info-row">
-                <span class="info-label">👥 플레이 인원</span>
-                <span class="info-value">${escapeHtml(item.players)}인</span>
-              </div>
-            </div>
-            <div class="card-footer">
               <div class="star-rating">
                 <span class="stars">${stars}</span>
-                <span class="score-text">${item.difficulty}점</span>
               </div>
             </div>
           </article>
@@ -133,7 +124,7 @@
       }).join('');
     }
 
-    // 실시간 검색 및 필터링 로직
+    // 필터 및 검색
     function applyFilter() {
       const query = searchInput.value.toLowerCase().trim();
       const pVal = playerFilter.value;
