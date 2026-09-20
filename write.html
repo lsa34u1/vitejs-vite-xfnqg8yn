@@ -11,17 +11,17 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- 서브 페이지 헤더 -->
+    <!-- 헤더 -->
     <header class="sub-header">
       <a href="index.html" class="nav-back">✕ 취소</a>
       <h1 class="sub-title">기록 추가</h1>
       <div class="header-dummy"></div>
     </header>
 
-    <!-- 작성 폼 -->
+    <!-- 입력 폼 -->
     <main class="form-container">
       <form id="recordForm">
-        <!-- 1. 보드게임명 (BGG 자동완성 검색) -->
+        <!-- 1. 보드게임명 (BGG 자동완성 연동) -->
         <div class="input-group">
           <div class="label-with-source">
             <label class="input-label" for="gameName">보드게임명</label>
@@ -32,16 +32,16 @@
               type="text" 
               id="gameName" 
               class="text-input" 
-              placeholder="영문 또는 한글 게임명 입력 (예: Catan)" 
+              placeholder="영문 이름 입력 (예: Wingspan, Catan)" 
               autocomplete="off"
               required
             >
             <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
           </div>
-          <p class="input-tip">* 보드게임긱(BoardGameGeek) 공식 명칭 목록이 추천됩니다.</p>
+          <p class="input-tip">* 2글자 이상 입력 시 BoardGameGeek 공식 명칭이 추천됩니다.</p>
         </div>
 
-        <!-- 2. 플레이 인원 (2인 ~ 8인) -->
+        <!-- 2. 인원 (2인 ~ 8인) -->
         <div class="input-group">
           <label class="input-label">인원 (2인~8인)</label>
           <div class="chip-container">
@@ -109,11 +109,11 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbybHJcSgR0ZyDOptjjZQUe2eYueDalbRK95z-25jmA1O3TWnCpdPBErHc_HionBNWSKuQ/exec";
 
-    // BGG 자동완성 검색 기능
     const input = document.getElementById('gameName');
     const dropdown = document.getElementById('bggResults');
     let timer = null;
 
+    // 입력 감지 (Debounce 적용)
     input.addEventListener('input', function() {
       const query = this.value.trim();
       clearTimeout(timer);
@@ -126,65 +126,51 @@
 
       timer = setTimeout(() => {
         searchBGG(query);
-      }, 400);
+      }, 350);
     });
 
+    // Apps Script 백엔드를 통한 안전한 BGG 검색
     async function searchBGG(query) {
       dropdown.innerHTML = '<div class="bgg-status">BGG 검색 중...</div>';
       dropdown.style.display = 'block';
 
       try {
-        const bggApiUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(bggApiUrl)}`;
+        const response = await fetch(`${API_URL}?bgg=${encodeURIComponent(query)}`);
+        const result = await response.json();
 
-        const response = await fetch(proxyUrl);
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+        if (result.status === "success" && result.data.length > 0) {
+          dropdown.innerHTML = '';
+          result.data.forEach(item => {
+            const option = document.createElement("div");
+            option.className = "bgg-item";
+            option.innerHTML = `
+              <span class="bgg-game-name">${escapeHtml(item.name)}</span>
+              ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
+            `;
 
-        const items = xmlDoc.getElementsByTagName("item");
-        dropdown.innerHTML = '';
+            option.addEventListener("click", function() {
+              input.value = item.name;
+              dropdown.style.display = 'none';
+            });
 
-        if (items.length === 0) {
-          dropdown.innerHTML = '<div class="bgg-status">검색 결과가 없습니다.</div>';
-          return;
-        }
-
-        const maxResults = Math.min(items.length, 6);
-        for (let i = 0; i < maxResults; i++) {
-          const item = items[i];
-          const nameElem = item.getElementsByTagName("name")[0];
-          const yearElem = item.getElementsByTagName("yearpublished")[0];
-
-          const name = nameElem ? nameElem.getAttribute("value") : "알 수 없음";
-          const year = yearElem ? yearElem.getAttribute("value") : "";
-
-          const option = document.createElement("div");
-          option.className = "bgg-item";
-          option.innerHTML = `
-            <span class="bgg-game-name">${name}</span>
-            ${year ? `<span class="bgg-game-year">(${year})</span>` : ''}
-          `;
-
-          option.addEventListener("click", function() {
-            input.value = name;
-            dropdown.style.display = 'none';
+            dropdown.appendChild(option);
           });
-
-          dropdown.appendChild(option);
+        } else {
+          dropdown.innerHTML = '<div class="bgg-status">일치하는 결과가 없습니다.</div>';
         }
       } catch (error) {
-        dropdown.innerHTML = '<div class="bgg-status">검색 오류가 발생했습니다. 직접 입력해 주세요.</div>';
+        dropdown.innerHTML = '<div class="bgg-status">검색에 실패했습니다. 직접 입력해 주세요.</div>';
       }
     }
 
+    // 바깥 영역 클릭 시 드롭다운 닫기
     document.addEventListener('click', function(e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
       }
     });
 
-    // 스프레드시트에 저장 (POST 요청)
+    // 스프레드시트 저장 (POST)
     const form = document.getElementById('recordForm');
     const saveBtn = document.getElementById('saveBtn');
 
@@ -219,19 +205,27 @@
         const result = await response.json();
 
         if (result.status === "success") {
-          alert("저장되었습니다!");
+          alert("성공적으로 저장되었습니다!");
           window.location.href = "index.html";
         } else {
-          alert("저장에 실패했습니다: " + (result.message || ""));
+          alert("저장 실패: " + (result.message || ""));
           saveBtn.disabled = false;
           saveBtn.innerText = "저장하기";
         }
       } catch (err) {
-        alert("통신 중 오류가 발생했습니다.");
+        alert("저장 통신 중 오류가 발생했습니다.");
         saveBtn.disabled = false;
         saveBtn.innerText = "저장하기";
       }
     });
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
   </script>
 </body>
 </html>
