@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>새 기록 작성 - My Shelf</title>
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
     <!-- 입력 폼 -->
     <main class="form-container">
       <form id="recordForm" class="glass-form-card">
-        <!-- 1. 보드게임명 (BGG XML API2 파싱 연동) -->
+        <!-- 1. 보드게임명 (BGG XML API2 다중 프록시 연동) -->
         <div class="input-group">
           <div class="label-with-source">
             <label class="input-label" for="gameName">보드게임명 (Title)</label>
@@ -32,13 +32,13 @@
               type="text" 
               id="gameName" 
               class="text-input glass-input" 
-              placeholder="영문 입력 (예: Catan, Wingspan, Terra...)" 
+              placeholder="영문 입력 (예: Wingspan, Catan...)" 
               autocomplete="off"
               required
             >
             <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
           </div>
-          <p class="input-tip">* 영문 2자 이상 입력 시 BoardGameGeek 공식 DB 목록이 뜹니다.</p>
+          <p class="input-tip">* 영문 2자 이상 입력 시 BoardGameGeek 공식 명칭이 추천됩니다.</p>
         </div>
 
         <!-- 2. 인원 (2인 ~ 8인) -->
@@ -114,13 +114,13 @@
     const form = document.getElementById('recordForm');
     const saveBtn = document.getElementById('saveBtn');
 
-    let timer = null;
-    let abortController = null;
+    let debounceTimer = null;
+    let currentController = null;
 
-    // 1. 디바운스(Debounce) 적용: 타이핑 멈춤 감지
+    // 1. 입력 감지 (350ms 대기 후 검색)
     input.addEventListener('input', function() {
       const query = this.value.trim();
-      clearTimeout(timer);
+      clearTimeout(debounceTimer);
 
       if (query.length < 2) {
         dropdown.style.display = 'none';
@@ -128,92 +128,130 @@
         return;
       }
 
-      timer = setTimeout(() => {
-        fetchBGGXmlApi(query);
-      }, 300);
+      debounceTimer = setTimeout(() => {
+        executeBggSearch(query);
+      }, 350);
     });
 
-    // 2. BGG XML API2 호출 및 CORS 프록시 우회
-    async function fetchBGGXmlApi(query) {
-      if (abortController) {
-        abortController.abort();
+    // 2. 타임아웃 지원 fetch 래퍼
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+      } catch (err) {
+        clearTimeout(id);
+        throw err;
       }
-      abortController = new AbortController();
+    }
+
+    // 3. 다중 프록시 폴백(Fallback) 검색 실행
+    async function executeBggSearch(query) {
+      if (currentController) {
+        currentController.abort();
+      }
+      currentController = new AbortController();
 
       dropdown.innerHTML = '<div class="bgg-status">🔍 BGG XML API2 검색 중...</div>';
       dropdown.style.display = 'block';
 
+      const bggTarget = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
+      
+      let xmlText = null;
+
+      // 시도 1: corsproxy.io
       try {
-        const bggEndpoint = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(bggEndpoint)}`;
-
-        const response = await fetch(proxyUrl, { signal: abortController.signal });
-        if (!response.ok) throw new Error("네트워크 응답 오류");
-
-        const xmlText = await response.text();
-        parseAndRenderBGGXml(xmlText);
-
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-        dropdown.innerHTML = '<div class="bgg-status">검색 오류가 발생했습니다. 직접 입력해 주세요.</div>';
+        const p1 = `https://corsproxy.io/?${encodeURIComponent(bggTarget)}`;
+        const r1 = await fetchWithTimeout(p1, {}, 4000);
+        if (r1.ok) {
+          xmlText = await r1.text();
+        }
+      } catch (e) {
+        // 프록시 1 실패 시 다음으로 통과
       }
-    }
 
-    // 3. 브라우저 DOMParser를 이용한 XML 구조 파싱
-    function parseAndRenderBGGXml(xmlText) {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
-      const items = xmlDoc.getElementsByTagName("item");
+      // 시도 2: allorigins.win (1번 실패 시 작동)
+      if (!xmlText) {
+        try {
+          const p2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(bggTarget)}`;
+          const r2 = await fetchWithTimeout(p2, {}, 4500);
+          if (r2.ok) {
+            xmlText = await r2.text();
+          }
+        } catch (e) {
+          // 프록시 2 실패
+        }
+      }
 
-      if (!items || items.length === 0) {
-        dropdown.innerHTML = '<div class="bgg-status">일치하는 보드게임이 없습니다. 직접 입력 가능합니다.</div>';
+      if (!xmlText) {
+        dropdown.innerHTML = '<div class="bgg-status">검색 서버 연결이 지연되고 있습니다. 직접 입력해 주세요.</div>';
         return;
       }
 
-      dropdown.innerHTML = '';
-      const limit = Math.min(items.length, 7);
+      parseAndShowXml(xmlText);
+    }
 
-      for (let i = 0; i < limit; i++) {
-        const item = items[i];
-        
-        // primary name 탐색 후 없으면 기본 name 탐색
-        let nameTag = item.querySelector('name[type="primary"]');
-        if (!nameTag) {
-          nameTag = item.getElementsByTagName("name")[0];
+    // 4. XML 해석 및 목록 출력
+    function parseAndShowXml(xmlString) {
+      try {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+        const items = xmlDoc.getElementsByTagName("item");
+
+        if (!items || items.length === 0) {
+          dropdown.innerHTML = '<div class="bgg-status">일치하는 보드게임이 없습니다. 직접 입력하셔도 됩니다.</div>';
+          return;
         }
 
-        const yearTag = item.getElementsByTagName("yearpublished")[0];
+        dropdown.innerHTML = '';
+        const displayLimit = Math.min(items.length, 7);
 
-        const gameName = nameTag ? (nameTag.getAttribute("value") || nameTag.textContent) : "";
-        const releaseYear = yearTag ? (yearTag.getAttribute("value") || yearTag.textContent) : "";
+        for (let i = 0; i < displayLimit; i++) {
+          const item = items[i];
 
-        if (!gameName) continue;
+          // 1차 공식 명칭(type="primary") 우선 탐색
+          let nameNode = item.querySelector('name[type="primary"]');
+          if (!nameNode) {
+            nameNode = item.getElementsByTagName("name")[0];
+          }
 
-        const itemEl = document.createElement("div");
-        itemEl.className = "bgg-item";
-        itemEl.innerHTML = `
-          <span class="bgg-game-name">${escapeHtml(gameName)}</span>
-          ${releaseYear ? `<span class="bgg-game-year">(${escapeHtml(releaseYear)})</span>` : ''}
-        `;
+          const yearNode = item.getElementsByTagName("yearpublished")[0];
 
-        // 4. 클릭 시 자동완성 입력 및 드롭다운 닫기
-        itemEl.addEventListener("click", function() {
-          input.value = gameName;
-          dropdown.style.display = 'none';
-        });
+          const title = nameNode ? (nameNode.getAttribute("value") || nameNode.textContent) : "";
+          const year = yearNode ? (yearNode.getAttribute("value") || yearNode.textContent) : "";
 
-        dropdown.appendChild(itemEl);
+          if (!title) continue;
+
+          const row = document.createElement("div");
+          row.className = "bgg-item";
+          row.innerHTML = `
+            <span class="bgg-game-name">${escapeHtml(title)}</span>
+            ${year ? `<span class="bgg-game-year">(${escapeHtml(year)})</span>` : ''}
+          `;
+
+          // 클릭 시 자동완성 입력
+          row.addEventListener("click", function() {
+            input.value = title;
+            dropdown.style.display = 'none';
+          });
+
+          dropdown.appendChild(row);
+        }
+      } catch (err) {
+        dropdown.innerHTML = '<div class="bgg-status">결과 파싱 오류가 발생했습니다. 직접 입력해 주세요.</div>';
       }
     }
 
-    // 드롭다운 외부 클릭 시 닫기
+    // 바깥 영역 클릭 시 추천창 닫기
     document.addEventListener('click', function(e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
       }
     });
 
-    // 스프레드시트 새 행 저장 (POST, Content-Type: text/plain)
+    // 스프레드시트 저장 (POST)
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
