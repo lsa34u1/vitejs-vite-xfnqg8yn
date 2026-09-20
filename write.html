@@ -21,7 +21,7 @@
     <!-- 입력 폼 -->
     <main class="form-container">
       <form id="recordForm" class="glass-form-card">
-        <!-- 1. 플레이 날짜 입력 (기본값 오늘) -->
+        <!-- 1. 플레이 날짜 입력 -->
         <div class="input-group">
           <div class="label-with-source">
             <label class="input-label" for="playDate">플레이 날짜 (Date)</label>
@@ -36,11 +36,11 @@
           <p class="input-tip">* 기본으로 오늘 날짜가 지정되며, 필요 시 변경할 수 있습니다.</p>
         </div>
 
-        <!-- 2. 보드게임명 (실시간 BGG API 연동 자동완성) -->
+        <!-- 2. 보드게임명 (실시간 BGG 검색) -->
         <div class="input-group">
           <div class="label-with-source">
             <label class="input-label" for="gameName">보드게임명 (Title)</label>
-            <span class="bgg-badge">BGG 공식 DB</span>
+            <span class="bgg-badge">BGG 실시간</span>
           </div>
           <div class="autocomplete-wrapper">
             <input 
@@ -53,7 +53,7 @@
             >
             <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
           </div>
-          <p class="input-tip">* 목록에서 게임을 선택하면 BGG Weight(난이도)가 자동 입력됩니다.</p>
+          <p class="input-tip">* 목록에서 게임을 선택하면 BGG 현재 최신 Weight가 실시간 조회됩니다.</p>
         </div>
 
         <!-- 3. 인원 (2인 ~ 8인) -->
@@ -70,22 +70,22 @@
           </div>
         </div>
 
-        <!-- 4. BGG 자동 난이도 (BGG Weight 불러오기) -->
+        <!-- 4. 실시간 BGG 최신 Weight -->
         <div class="input-group">
           <div class="label-with-source">
-            <label class="input-label" for="difficultyDisplay">난이도 (BGG Weight / 5.0 만점)</label>
-            <span class="bgg-badge" id="weightBadge">자동 측정</span>
+            <label class="input-label" for="difficultyDisplay">난이도 (BGG 실시간 Weight / 5.0)</label>
+            <span class="bgg-badge" id="weightBadge">대기 중</span>
           </div>
           <input 
             type="text" 
             id="difficultyDisplay" 
             class="text-input glass-input" 
-            placeholder="게임을 선택하면 자동으로 계산됩니다" 
+            placeholder="게임을 선택하면 최신 BGG 수치를 가져옵니다" 
             readonly
-            style="cursor: default; font-weight: 600; color: #1e293b;"
+            style="font-weight: 600; color: #1e293b;"
           >
           <input type="hidden" id="difficultyVal" name="difficulty" value="3">
-          <p class="input-tip" id="weightDesc">* BGG 커뮤니티의 공식 복잡도(Weight) 지수입니다.</p>
+          <p class="input-tip" id="weightDesc">* BGG 커뮤니티의 실시간 평균 난이도(Weight) 수치입니다.</p>
         </div>
 
         <!-- 하단 액션 버튼 -->
@@ -100,82 +100,6 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwgnPKokcM9NsFcqbQ4M5f_6TuhWwVtEwPdS-hmO-E7jmIieHBdU4nfgnWucHQgCrdjeA/exec";
 
-    // 기본 로컬 캐시 데이터 (BGG ID 매핑)
-    const LOCAL_FALLBACK_DB = [
-      { id: "266192", name: "Wingspan", year: "2019" },
-      { id: "13", name: "Catan", year: "1995" },
-      { id: "167791", name: "Terraforming Mars", year: "2016" },
-      { id: "148228", name: "Splendor", year: "2014" },
-      { id: "295947", name: "Cascadia", year: "2021" },
-      { id: "414317", name: "Harmonies", year: "2024" },
-      { id: "418059", name: "SETI: Search for Extraterrestrial Intelligence", year: "2024" },
-      { id: "177303", name: "National Economy", year: "2015" },
-      { id: "224517", name: "Brass: Birmingham", year: "2018" },
-      { id: "342942", name: "Ark Nova", year: "2021" },
-      { id: "316554", name: "Dune: Imperium", year: "2020" },
-      { id: "174430", name: "Gloomhaven", year: "2017" },
-      { id: "291457", name: "Gloomhaven: Jaws of the Lion", year: "2020" },
-      { id: "162886", name: "Spirit Island", year: "2017" },
-      { id: "193738", name: "Great Western Trail", year: "2016" },
-      { id: "291453", name: "Scout", year: "2019" },
-      { id: "84876", name: "The Castles of Burgundy", year: "2011" },
-      { id: "124361", name: "Concordia", year: "2013" },
-      { id: "312484", name: "Lost Ruins of Arnak", year: "2020" },
-      { id: "230802", name: "Azul", year: "2017" },
-      { id: "173346", name: "7 Wonders Duel", year: "2015" },
-      { id: "68448", name: "7 Wonders", year: "2010" },
-      { id: "366013", name: "Heat: Pedal to the Metal", year: "2022" },
-      { id: "237182", name: "Root", year: "2018" },
-      { id: "284083", name: "The Crew: The Quest for Planet Nine", year: "2019" },
-      { id: "324856", name: "The Crew: Mission Deep Sea", year: "2021" },
-      { id: "822", name: "Carcassonne", year: "2000" },
-      { id: "30549", name: "Pandemic", year: "2008" },
-      { id: "161936", name: "Pandemic Legacy: Season 1", year: "2015" },
-      { id: "201808", name: "Clank!: A Deck-Building Adventure", year: "2016" },
-      { id: "365717", name: "Clank! Catacombs", year: "2022" },
-      { id: "31260", name: "Agricola", year: "2007" },
-      { id: "163412", name: "Patchwork", year: "2014" },
-      { id: "199792", name: "Everdell", year: "2018" },
-      { id: "170216", name: "Blood Rage", year: "2015" },
-      { id: "169786", name: "Scythe", year: "2016" },
-      { id: "183394", name: "Viticulture Essential Edition", year: "2015" },
-      { id: "166384", name: "Nemesis", year: "2018" },
-      { id: "256960", name: "Pax Pamir: Second Edition", year: "2019" },
-      { id: "126163", name: "Tzolk'in: The Mayan Calendar", year: "2012" },
-      { id: "157354", name: "Five Tribes", year: "2014" },
-      { id: "177736", name: "A Feast for Odin", year: "2016" },
-      { id: "2651", name: "Power Grid", year: "2004" },
-      { id: "171", name: "Puerto Rico", year: "2002" },
-      { id: "36218", name: "Dominion", year: "2008" },
-      { id: "9209", name: "Ticket to Ride", year: "2004" },
-      { id: "14996", name: "Ticket to Ride: Europe", year: "2005" },
-      { id: "129622", name: "Love Letter", year: "2012" },
-      { id: "128882", name: "The Resistance: Avalon", year: "2012" },
-      { id: "172386", name: "Secret Hitler", year: "2016" },
-      { id: "178900", name: "Codenames", year: "2015" },
-      { id: "224037", name: "Codenames: Duet", year: "2017" },
-      { id: "39856", name: "Dixit", year: "2008" },
-      { id: "254640", name: "Just One", year: "2018" },
-      { id: "245654", name: "Decrypto", year: "2018" },
-      { id: "83195", name: "Skull", year: "2011" },
-      { id: "359970", name: "Challengers!", year: "2022" },
-      { id: "367220", name: "Sea Salt & Paper", year: "2022" },
-      { id: "356770", name: "Trio", year: "2021" },
-      { id: "370591", name: "Dorfromantik: The Board Game", year: "2022" },
-      { id: "357924", name: "Earth", year: "2023" },
-      { id: "340466", name: "Darwin's Journey", year: "2023" },
-      { id: "205637", name: "Arkham Horror: The Card Game", year: "2016" },
-      { id: "285774", name: "Marvel Champions: The Card Game", year: "2019" },
-      { id: "205059", name: "Mansions of Madness: Second Edition", year: "2016" },
-      { id: "274637", name: "Unmatched: Battle of Legends, Volume One", year: "2019" },
-      { id: "811", name: "Rummikub", year: "1977" },
-      { id: "2932", name: "Halli Galli", year: "1990" },
-      { id: "3955", name: "Bang!", year: "2002" },
-      { id: "11", name: "Bohnanza", year: "1997" },
-      { id: "1294", name: "Clue", year: "1949" },
-      { id: "7021", name: "Coda", year: "2002" }
-    ];
-
     const input = document.getElementById('gameName');
     const dropdown = document.getElementById('bggResults');
     const form = document.getElementById('recordForm');
@@ -185,7 +109,7 @@
     const difficultyVal = document.getElementById('difficultyVal');
     const weightBadge = document.getElementById('weightBadge');
 
-    // 오늘 날짜를 YYYY-MM-DD 포맷으로 기본값 세팅
+    // 오늘 날짜 세팅
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -197,7 +121,7 @@
 
     // 타임아웃 지원 fetch
     async function fetchWithTimeout(resource, options = {}) {
-      const { timeout = 3500 } = options;
+      const { timeout = 5000 } = options;
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
       try {
@@ -213,39 +137,41 @@
       }
     }
 
-    // BGG 프록시 공통 fetch
-    async function fetchBggXml(url) {
-      try {
-        const proxy1 = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        const res = await fetchWithTimeout(proxy1, { timeout: 3500 });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.contents) return json.contents;
-        }
-      } catch (e) {}
+    // 초고속 다중 프록시 파이프라인 (가장 응답이 빠른 프록시 순환)
+    async function fetchBggXmlFast(targetUrl) {
+      const encoded = encodeURIComponent(targetUrl);
+      const proxies = [
+        `https://corsproxy.io/?${encoded}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encoded}`,
+        `https://api.allorigins.win/raw?url=${encoded}`
+      ];
 
-      try {
-        const proxy2 = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
-        const res = await fetchWithTimeout(proxy2, { timeout: 3500 });
-        if (res.ok) {
-          return await res.text();
+      for (const proxy of proxies) {
+        try {
+          const res = await fetchWithTimeout(proxy, { timeout: 4000 });
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.includes("<items")) return text;
+          }
+        } catch (e) {
+          // 다음 프록시로 즉시 시도
+          continue;
         }
-      } catch (err2) {}
-
-      throw new Error("BGG 프록시 요청 실패");
+      }
+      throw new Error("BGG 프록시 응답 실패");
     }
 
-    // 1. 보드게임 검색 API
+    // 1. 실시간 보드게임 검색
     async function searchBggApi(query) {
       const bggUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
-      const xmlText = await fetchBggXml(bggUrl);
+      const xmlText = await fetchBggXmlFast(bggUrl);
 
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
       const items = xmlDoc.getElementsByTagName("item");
 
       const results = [];
-      const limit = Math.min(items.length, 12);
+      const limit = Math.min(items.length, 10);
 
       for (let i = 0; i < limit; i++) {
         const item = items[i];
@@ -265,56 +191,66 @@
       return results;
     }
 
-    // 2. BGG Weight(난이도) 조회 API
+    // 2. 실시간 BGG 최신 Weight 조회
     async function fetchBggWeight(bggId) {
       const bggUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
-      const xmlText = await fetchBggXml(bggUrl);
+      const xmlText = await fetchBggXmlFast(bggUrl);
 
+      // 전체 파싱 전 정규식으로 averageweight 값 즉시 추출 (DOM 파싱 지연 단축)
+      const match = xmlText.match(/<averageweight\s+value="([^"]+)"/);
+      if (match && match[1]) {
+        const num = parseFloat(match[1]);
+        if (!isNaN(num) && num > 0) {
+          return num.toFixed(2);
+        }
+      }
+
+      // 정규식 실패 시 표준 DOM 파서 시도
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
       const weightEl = xmlDoc.getElementsByTagName("averageweight")[0];
-
       if (weightEl) {
-        const rawWeight = parseFloat(weightEl.getAttribute("value"));
-        if (!isNaN(rawWeight) && rawWeight > 0) {
-          return rawWeight.toFixed(2);
-        }
+        const val = parseFloat(weightEl.getAttribute("value"));
+        if (!isNaN(val) && val > 0) return val.toFixed(2);
       }
+
       return null;
     }
 
-    // 게임 선택 처리
+    // 게임 선택 시 처리
     async function selectGame(item) {
       input.value = item.name;
       dropdown.style.display = 'none';
 
-      difficultyDisplay.value = "BGG Weight 조회 중...";
+      difficultyDisplay.value = "BGG 최신 Weight 조회 중...";
       weightBadge.innerText = "조회 중";
 
       if (!item.id) {
-        difficultyDisplay.value = "난이도 정보 없음 (기본값 3)";
+        difficultyDisplay.value = "난이도 정보 없음 (기본값 3점)";
         difficultyVal.value = "3";
-        weightBadge.innerText = "수동";
+        weightBadge.innerText = "기본값";
         return;
       }
 
       try {
         const weight = await fetchBggWeight(item.id);
         if (weight) {
+          const parsed = parseFloat(weight);
+          const rounded = Math.min(5, Math.max(1, Math.round(parsed)));
+          
           difficultyDisplay.value = `${weight} / 5.0 점`;
-          const rounded = Math.min(5, Math.max(1, Math.round(parseFloat(weight))));
           difficultyVal.value = String(rounded);
-          weightBadge.innerText = `BGG 공식 (난이도 ${rounded}점)`;
+          weightBadge.innerText = `BGG 공식 (${rounded}점)`;
         } else {
-          difficultyDisplay.value = "난이도 데이터 없음 (기본값 3)";
+          difficultyDisplay.value = "난이도 정보 없음 (기본값 3점)";
           difficultyVal.value = "3";
           weightBadge.innerText = "기본값";
         }
       } catch (err) {
-        console.warn("난이도 불러오기 실패:", err);
-        difficultyDisplay.value = "불러오기 실패 (기본값 3)";
+        console.warn("난이도 실시간 로딩 실패:", err);
+        difficultyDisplay.value = "연동 지연 (기본값 3점 처리)";
         difficultyVal.value = "3";
-        weightBadge.innerText = "기본값";
+        weightBadge.innerText = "지연됨";
       }
     }
 
@@ -344,7 +280,7 @@
       dropdown.style.display = 'block';
     }
 
-    // 입력 감지
+    // 검색어 입력 이벤트
     input.addEventListener('input', function() {
       const q = this.value.trim();
       clearTimeout(debounceTimer);
@@ -355,44 +291,24 @@
         return;
       }
 
-      const lowerQ = q.toLowerCase();
-      const localMatches = LOCAL_FALLBACK_DB.filter(game => 
-        game.name.toLowerCase().includes(lowerQ)
-      );
-
-      if (localMatches.length > 0) {
-        renderDropdownItems(localMatches);
-      } else {
-        dropdown.innerHTML = '<div class="bgg-status">BGG에서 실시간 검색 중...</div>';
-        dropdown.style.display = 'block';
-      }
+      dropdown.innerHTML = '<div class="bgg-status">BGG에서 실시간 검색 중...</div>';
+      dropdown.style.display = 'block';
 
       const thisSearchId = ++currentSearchId;
 
       debounceTimer = setTimeout(async () => {
-        let apiResults = [];
-
         try {
-          apiResults = await searchBggApi(q);
+          const results = await searchBggApi(q);
+          if (thisSearchId !== currentSearchId) return;
+          renderDropdownItems(results);
         } catch (err) {
-          console.warn("실시간 API 조회 실패, 현재 결과 유지:", err);
+          if (thisSearchId !== currentSearchId) return;
+          dropdown.innerHTML = '<div class="bgg-status">검색 결과를 불러오지 못했습니다. (직접 입력 가능)</div>';
         }
-
-        if (thisSearchId !== currentSearchId) return;
-
-        const combined = [...apiResults];
-
-        localMatches.forEach(loc => {
-          if (!combined.some(c => c.name.toLowerCase() === loc.name.toLowerCase())) {
-            combined.unshift(loc);
-          }
-        });
-
-        renderDropdownItems(combined);
-      }, 300);
+      }, 350);
     });
 
-    // 드롭다운 바깥 영역 클릭 닫기
+    // 드롭다운 바깥 클릭 시 닫기
     document.addEventListener('click', function(e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
