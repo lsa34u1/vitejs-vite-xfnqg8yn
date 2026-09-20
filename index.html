@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>내 보드게임 다이어리 (My Shelf)</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -74,6 +74,21 @@
     const playerFilter = document.getElementById('playerFilter');
     const difficultyFilter = document.getElementById('difficultyFilter');
 
+    // 날짜 뒤 시간(시:분:초 등)을 완전히 제거하고 YYYY-MM-DD만 추출하는 함수
+    function cleanDateOnly(rawDate) {
+      if (!rawDate) return "";
+      let str = String(rawDate).trim();
+      // "T"가 있는 ISO 형식이면 T 앞부분만 추출
+      if (str.includes("T")) {
+        str = str.split("T")[0];
+      }
+      // 공백으로 시간이 구분되어 있다면 첫 단어(날짜)만 추출
+      if (str.includes(" ")) {
+        str = str.split(" ")[0];
+      }
+      return str;
+    }
+
     // Google 스프레드시트 데이터 불러오기
     async function fetchRecords() {
       try {
@@ -91,7 +106,7 @@
       }
     }
 
-    // 카드 렌더링 (사진 및 썸네일 영역 완전 제거)
+    // 카드 렌더링 (사진 제거 + 순수 날짜만 표시)
     function renderCards(records) {
       if (records.length === 0) {
         cardList.innerHTML = '<div class="status-msg">기록된 보드게임이 없습니다.</div>';
@@ -101,6 +116,7 @@
       cardList.innerHTML = records.map(item => {
         const diffNum = parseInt(item.difficulty, 10) || 0;
         const stars = "★".repeat(diffNum) + "☆".repeat(Math.max(0, 5 - diffNum));
+        const formattedDate = cleanDateOnly(item.date);
         
         return `
           <article class="grid-card glass-card">
@@ -117,7 +133,7 @@
                 </div>
                 <div class="meta-clean-row">
                   <span class="meta-clean-label">날짜</span>
-                  <span class="meta-clean-val">${escapeHtml(item.date)}</span>
+                  <span class="meta-clean-val">${escapeHtml(formattedDate)}</span>
                 </div>
               </div>
             </div>
@@ -126,7 +142,7 @@
       }).join('');
     }
 
-    // 실시간 검색 및 필터링 로직
+    // 실시간 검색 및 필터링
     function applyFilter() {
       const query = searchInput.value.toLowerCase().trim();
       const pVal = playerFilter.value;
