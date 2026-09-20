@@ -113,7 +113,7 @@
               </div>
             </label>
           </div>
-          <p class="input-tip" id="weightDesc">* 게임을 고르면 실시간 Weight에 맞춰 자동 선택되며, 직접 변경도 가능합니다.</p>
+          <p class="input-tip" id="weightDesc">* 게임을 선택하면 BGG 실시간 평점에 맞춰 자동 체크됩니다.</p>
         </div>
 
         <!-- 하단 액션 버튼 -->
@@ -147,61 +147,46 @@
     let currentSearchId = 0;
 
     // 타임아웃 지원 fetch
-    async function fetchWithTimeout(resource, options = {}) {
-      const { timeout = 4000 } = options;
+    async function safeFetch(url, timeoutMs = 5000) {
       const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeout);
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const response = await fetch(resource, {
-          ...options,
-          signal: controller.signal
-        });
-        clearTimeout(id);
-        return response;
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timer);
+        return res;
       } catch (err) {
-        clearTimeout(id);
+        clearTimeout(timer);
         throw err;
       }
     }
 
-    // BGG 통신 헬퍼 (차단 우회용 프록시 체인)
-    async function requestBgg(targetUrl) {
-      const encoded = encodeURIComponent(targetUrl);
-      
-      // 1순위: allorigins raw 엔드포인트
+    // 신뢰도 높은 안정 통신 함수
+    async function requestBggText(targetBggUrl) {
+      // 1순위: corsproxy.io (가장 안정적이고 제한이 적음)
       try {
-        const res = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encoded}`, { timeout: 3500 });
+        const res = await safeFetch(`https://corsproxy.io/?${encodeURIComponent(targetBggUrl)}`, 4000);
         if (res.ok) {
           const text = await res.text();
           if (text) return text;
         }
       } catch (e) {}
 
-      // 2순위: codetabs
+      // 2순위: allorigins raw 엔드포인트
       try {
-        const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encoded}`, { timeout: 3500 });
+        const res = await safeFetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetBggUrl)}`, 4000);
         if (res.ok) {
           const text = await res.text();
           if (text) return text;
         }
       } catch (e) {}
 
-      // 3순위: corsproxy.io
-      try {
-        const res = await fetchWithTimeout(`https://corsproxy.io/?${encoded}`, { timeout: 3500 });
-        if (res.ok) {
-          const text = await res.text();
-          if (text) return text;
-        }
-      } catch (e) {}
-
-      throw new Error("모든 프록시 응답 실패");
+      throw new Error("BGG 프록시 통신 실패");
     }
 
-    // 1. 실시간 보드게임 검색 (BGG XML API)
+    // 1. 실시간 보드게임 검색
     async function searchBgg(query) {
-      const url = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
-      const xmlText = await requestBgg(url);
+      const targetUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
+      const xmlText = await requestBggText(targetUrl);
 
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
@@ -230,10 +215,9 @@
 
     // 2. 실시간 BGG Weight 조회
     async function getBggWeight(bggId) {
-      const url = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
-      const xmlText = await requestBgg(url);
+      const targetUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
+      const xmlText = await requestBggText(targetUrl);
 
-      // XML 정규식으로 averageweight 값 즉시 추출
       const match = xmlText.match(/<averageweight\s+value="([^"]+)"/);
       if (match && match[1]) {
         const val = parseFloat(match[1]);
@@ -244,8 +228,8 @@
       return null;
     }
 
-    // 난이도 라디오 버튼 자동 체크 및 안내문구 업데이트
-    function setDifficultyScore(scoreNum, rawWeight = null) {
+    // 난이도 라디오 체크 및 문구 반영
+    function applyDifficulty(scoreNum, rawWeight = null) {
       const scoreInt = Math.min(5, Math.max(1, Math.round(scoreNum)));
       const radio = document.querySelector(`input[name="difficulty"][value="${scoreInt}"]`);
       if (radio) {
@@ -254,10 +238,10 @@
 
       if (rawWeight) {
         weightBadge.innerText = `BGG: ${rawWeight} / 5.0`;
-        weightDesc.innerText = `* BGG 커뮤니티 평점: ${rawWeight}점 (난이도 ${scoreInt}점 단계로 자동 선택됨)`;
+        weightDesc.innerText = `* BGG 실시간 평균: ${rawWeight}점 (난이도 ${scoreInt}점으로 자동 선택되었습니다)`;
       } else {
-        weightBadge.innerText = `수동: ${scoreInt}점`;
-        weightDesc.innerText = `* 직접 선택한 난이도 ${scoreInt}점으로 저장됩니다.`;
+        weightBadge.innerText = `선택: ${scoreInt}점`;
+        weightDesc.innerText = `* 난이도 ${scoreInt}점으로 설정되었습니다.`;
       }
     }
 
@@ -267,36 +251,36 @@
       dropdown.style.display = 'none';
 
       weightBadge.innerText = "조회 중...";
-      weightDesc.innerText = "* 최신 BGG Weight 데이터를 가져오는 중입니다...";
+      weightDesc.innerText = "* BGG 서버에서 최신 난이도(Weight)를 실시간으로 받아오는 중입니다...";
 
       if (!item.id) {
-        setDifficultyScore(3);
+        applyDifficulty(3);
         weightBadge.innerText = "기본값";
-        weightDesc.innerText = "* 게임 ID가 없어 기본값(3점)으로 설정되었습니다. 원하는 점수를 직접 선택하세요.";
+        weightDesc.innerText = "* 게임 고유 ID가 없어 기본값(3점)으로 설정되었습니다. 원하는 점수를 직접 선택하세요.";
         return;
       }
 
       try {
         const weight = await getBggWeight(item.id);
         if (weight) {
-          setDifficultyScore(parseFloat(weight), weight);
+          applyDifficulty(parseFloat(weight), weight);
         } else {
-          setDifficultyScore(3);
+          applyDifficulty(3);
           weightBadge.innerText = "평점 없음";
-          weightDesc.innerText = "* BGG에 등록된 Weight 정보가 없습니다. 원하는 점수를 직접 선택하세요.";
+          weightDesc.innerText = "* 해당 게임에 등록된 난이도 평점이 없습니다. 점수를 직접 선택하세요.";
         }
       } catch (err) {
-        console.warn("Weight 실시간 조회 실패:", err);
-        setDifficultyScore(3);
+        console.warn("난이도 통신 에러:", err);
+        applyDifficulty(3);
         weightBadge.innerText = "직접 선택";
-        weightDesc.innerText = "* BGG 통신이 지연되었습니다. 원하는 난이도 번호를 직접 터치해 주세요.";
+        weightDesc.innerText = "* BGG 통신이 지연되었습니다. 아래 1~5점 중 원하는 점수를 직접 터치해 주세요.";
       }
     }
 
-    // 검색 결과 드롭다운 표시
+    // 검색 결과 드롭다운 렌더링
     function renderDropdown(list) {
       if (!list || list.length === 0) {
-        dropdown.innerHTML = '<div class="bgg-status">일치하는 게임이 없습니다. (직접 입력 후 등록 가능)</div>';
+        dropdown.innerHTML = '<div class="bgg-status">검색 결과가 없습니다. (직접 입력 가능)</div>';
         dropdown.style.display = 'block';
         return;
       }
@@ -319,7 +303,7 @@
       dropdown.style.display = 'block';
     }
 
-    // 검색창 입력 이벤트
+    // 검색창 입력 이벤트 (디바운스 400ms)
     input.addEventListener('input', function() {
       const q = this.value.trim();
       clearTimeout(debounceTimer);
@@ -342,12 +326,12 @@
           renderDropdown(results);
         } catch (err) {
           if (thisSearchId !== currentSearchId) return;
-          dropdown.innerHTML = '<div class="bgg-status">검색 통신 지연 (직접 입력 후 등록 가능)</div>';
+          dropdown.innerHTML = '<div class="bgg-status">BGG 응답 지연 (직접 입력 후 등록 가능)</div>';
         }
-      }, 350);
+      }, 400);
     });
 
-    // 드롭다운 바깥 클릭 시 닫기
+    // 드롭다운 바깥 영역 클릭 시 닫기
     document.addEventListener('click', function(e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
