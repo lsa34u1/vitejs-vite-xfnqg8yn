@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- 서브 헤더 -->
+    <!-- 헤더 -->
     <header class="sub-header">
       <a href="index.html" class="nav-back">✕ 취소</a>
       <h1 class="sub-title">기록 추가</h1>
@@ -28,7 +28,7 @@
             type="text" 
             id="gameName" 
             class="text-input" 
-            placeholder="보드게임명을 입력하세요 (예: 카탄, Catan)" 
+            placeholder="보드게임명을 입력하세요 (예: 카탄, Splendor)" 
             autocomplete="off"
             required
           >
@@ -100,7 +100,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbybHJcSgR0ZyDOptjjZQUe2eYueDalbRK95z-25jmA1O3TWnCpdPBErHc_HionBNWSKuQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyJ4tOJInYvsGWUC9gKDLNLQM2kLkP3u_G-ZS4zaJizbOdGTICthfutBkcNgPz5WJnNIA/exec";
 
     const form = document.getElementById('recordForm');
     const input = document.getElementById('gameName');
@@ -122,6 +122,7 @@
       saveBtn.innerText = "저장 중...";
 
       try {
+        // CORS 방지를 위해 text/plain으로 JSON 전송 (작성일은 서버에서 오늘 날짜로 자동 처리)
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
