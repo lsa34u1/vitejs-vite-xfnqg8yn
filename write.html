@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>새 기록 작성 - My Shelf</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- 서브 페이지 헤더 -->
+      <header class="sub-header">
+        <a href="index.html" class="nav-back">✕ 취소</a>
+        <h1 class="sub-title">기록 추가</h1>
+        <div class="header-dummy"></div>
+      </header>
+
+      <!-- 작성 폼 -->
+      <main class="form-container">
+        <form action="index.html" method="get">
+          <!-- 1. 보드게임명 -->
+          <div class="input-group">
+            <label class="input-label" for="gameName">보드게임명</label>
+            <input
+              type="text"
+              id="gameName"
+              class="text-input"
+              placeholder="예: 하모니즈 (Harmonies)"
+              value="하모니즈 (Harmonies)"
+            />
+          </div>
+
+          <!-- 2. 플레이 날짜 -->
+          <div class="input-group">
+            <label class="input-label" for="playDate">플레이 날짜</label>
+            <input
+              type="date"
+              id="playDate"
+              class="text-input"
+              value="2026-09-20"
+            />
+          </div>
+
+          <!-- 3. 인원 (2인 ~ 8인) -->
+          <div class="input-group">
+            <label class="input-label">인원 (2인~8인)</label>
+            <div class="chip-container">
+              <label class="chip-item"
+                ><input type="radio" name="players" value="2" /><span
+                  >2인</span
+                ></label
+              >
+              <label class="chip-item"
+                ><input type="radio" name="players" value="3" /><span
+                  >3인</span
+                ></label
+              >
+              <label class="chip-item"
+                ><input type="radio" name="players" value="4" checked /><span
+                  >4인</span
+                ></label
+              >
+              <label class="chip-item"
+                ><input type="radio" name="players" value="5" /><span
+                  >5인</span
+                ></label
+              >
+              <label class="chip-item"
+                ><input type="radio" name="players" value="6" /><span
+                  >6인</span
+                ></label
+              >
+              <label class="chip-item"
+                ><input type="radio" name="players" value="7" /><span
+                  >7인</span
+                ></label
+              >
+              <label class="chip-item"
+                ><input type="radio" name="players" value="8" /><span
+                  >8인</span
+                ></label
+              >
+            </div>
+          </div>
+
+          <!-- 4. 난이도 점수 (5점 만점) -->
+          <div class="input-group">
+            <label class="input-label">난이도 점수 (5점 만점)</label>
+            <div class="score-card-group">
+              <label class="score-card">
+                <input type="radio" name="difficulty" value="1" />
+                <div class="score-box">
+                  <span class="score-digit">1</span>
+                  <span class="score-name">매우 쉬움</span>
+                </div>
+              </label>
+              <label class="score-card">
+                <input type="radio" name="difficulty" value="2" />
+                <div class="score-box">
+                  <span class="score-digit">2</span>
+                  <span class="score-name">쉬움</span>
+                </div>
+              </label>
+              <label class="score-card">
+                <input type="radio" name="difficulty" value="3" checked />
+                <div class="score-box">
+                  <span class="score-digit">3</span>
+                  <span class="score-name">보통</span>
+                </div>
+              </label>
+              <label class="score-card">
+                <input type="radio" name="difficulty" value="4" />
+                <div class="score-box">
+                  <span class="score-digit">4</span>
+                  <span class="score-name">어려움</span>
+                </div>
+              </label>
+              <label class="score-card">
+                <input type="radio" name="difficulty" value="5" />
+                <div class="score-box">
+                  <span class="score-digit">5</span>
+                  <span class="score-name">매우 어려움</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 하단 버튼 -->
+          <div class="button-group">
+            <a href="index.html" class="btn btn-cancel">취소</a>
+            <a href="index.html" class="btn btn-save">저장하기</a>
+          </div>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

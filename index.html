@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 보드게임 다이어리 (My Shelf)</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 상단 헤더 -->
+    <header class="header">
+      <div class="logo-area">
+        <span class="logo-icon">🎲</span>
+        <h1 class="logo-title">My Shelf</h1>
+      </div>
+      <div class="user-badge">ME</div>
+    </header>
+
+    <!-- 검색 및 필터 바 -->
+    <section class="filter-section">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search games in this shelf..." readonly>
+      </div>
+
+      <div class="filter-row">
+        <div class="select-wrapper">
+          <select name="player-filter">
+            <option value="">인원 전체</option>
+            <option value="2">2인</option>
+            <option value="3">3인</option>
+            <option value="4">4인</option>
+            <option value="5">5인</option>
+            <option value="6">6인</option>
+            <option value="7">7인</option>
+            <option value="8">8인</option>
+          </select>
+        </div>
+
+        <div class="select-wrapper">
+          <select name="difficulty-filter">
+            <option value="">난이도 전체</option>
+            <option value="1">난이도 1점</option>
+            <option value="2">난이도 2점</option>
+            <option value="3">난이도 3점</option>
+            <option value="4">난이도 4점</option>
+            <option value="5">난이도 5점</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 기록 카드 목록 -->
+    <main class="card-list">
+      <!-- 예시 카드 1 -->
+      <article class="card">
+        <div class="card-header">
+          <h2 class="game-title">테라포밍 마스 (Terraforming Mars)</h2>
+          <span class="badge">난이도 4</span>
+        </div>
+        <div class="card-info-box">
+          <div class="info-row">
+            <span class="info-label">📅 플레이 날짜</span>
+            <span class="info-value">2026.09.18</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">👥 플레이 인원</span>
+            <span class="info-value">4인</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="star-rating">
+            <span class="stars">★★★★☆</span>
+            <span class="score-text">4점</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn-action">수정</button>
+            <button type="button" class="btn-action btn-delete">삭제</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- 예시 카드 2 -->
+      <article class="card">
+        <div class="card-header">
+          <h2 class="game-title">스플렌더 (Splendor)</h2>
+          <span class="badge">난이도 2</span>
+        </div>
+        <div class="card-info-box">
+          <div class="info-row">
+            <span class="info-label">📅 플레이 날짜</span>
+            <span class="info-value">2026.09.12</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">👥 플레이 인원</span>
+            <span class="info-value">3인</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="star-rating">
+            <span class="stars">★★☆☆☆</span>
+            <span class="score-text">2점</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn-action">수정</button>
+            <button type="button" class="btn-action btn-delete">삭제</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- 예시 카드 3 -->
+      <article class="card">
+        <div class="card-header">
+          <h2 class="game-title">카스카디아 (Cascadia)</h2>
+          <span class="badge">난이도 3</span>
+        </div>
+        <div class="card-info-box">
+          <div class="info-row">
+            <span class="info-label">📅 플레이 날짜</span>
+            <span class="info-value">2026.09.05</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">👥 플레이 인원</span>
+            <span class="info-value">2인</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="star-rating">
+            <span class="stars">★★★☆☆</span>
+            <span class="score-text">3점</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn-action">수정</button>
+            <button type="button" class="btn-action btn-delete">삭제</button>
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <!-- 플로팅 액션 버튼 (+) -->
+    <a href="write.html" class="fab-btn" aria-label="기록 추가">
+      <span>+</span>
+    </a>
+  </div>
+</body>
+</html>
