@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>내 보드게임 다이어리 (My Shelf)</title>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,7 +14,6 @@
     <!-- 상단 헤더 -->
     <header class="header glass-panel">
       <div class="logo-area">
-        <span class="logo-icon">🎲</span>
         <h1 class="logo-title">My Shelf</h1>
       </div>
       <div class="user-badge">ME</div>
@@ -92,7 +91,7 @@
       }
     }
 
-    // 카드 목록 격자 렌더링
+    // 카드 목록 격자 렌더링 (사진 제거)
     function renderCards(records) {
       if (records.length === 0) {
         cardList.innerHTML = '<div class="status-msg">기록된 보드게임이 없습니다.</div>';
@@ -105,18 +104,21 @@
         
         return `
           <article class="grid-card glass-card">
-            <div class="card-thumb">
-              <span class="card-thumb-icon">🎲</span>
-              <span class="badge-overlay">${item.difficulty} / 5</span>
+            <div class="card-header-clean">
+              <span class="badge-tag">난이도 ${item.difficulty}</span>
+              <span class="stars-clean">${stars}</span>
             </div>
-            <div class="card-content">
-              <h2 class="game-title">${escapeHtml(item.gameName)}</h2>
-              <div class="meta-row">
-                <span class="meta-tag">👥 ${escapeHtml(item.players)}인</span>
-                <span class="meta-tag">📅 ${escapeHtml(item.date)}</span>
-              </div>
-              <div class="star-rating">
-                <span class="stars">${stars}</span>
+            <div class="card-content-clean">
+              <h2 class="game-title-clean">${escapeHtml(item.gameName)}</h2>
+              <div class="meta-list-clean">
+                <div class="meta-clean-row">
+                  <span class="meta-clean-label">인원</span>
+                  <span class="meta-clean-val">${escapeHtml(item.players)}인</span>
+                </div>
+                <div class="meta-clean-row">
+                  <span class="meta-clean-label">날짜</span>
+                  <span class="meta-clean-val">${escapeHtml(item.date)}</span>
+                </div>
               </div>
             </div>
           </article>

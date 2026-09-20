@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>새 기록 작성 - My Shelf</title>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,13 +32,13 @@
               type="text" 
               id="gameName" 
               class="text-input glass-input" 
-              placeholder="영문 입력 (예: catan, wingspan, terra...)" 
+              placeholder="영문 이름 입력 (예: Catan, Wingspan)" 
               autocomplete="off"
               required
             >
             <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
           </div>
-          <p class="input-tip">* 영문 2자 이상 입력 시 BGG 공식 데이터베이스에서 즉시 찾아줍니다.</p>
+          <p class="input-tip">* 영문 2자 이상 입력 시 BGG 등록 이름이 자동 추천됩니다.</p>
         </div>
 
         <!-- 2. 인원 (2인 ~ 8인) -->
@@ -116,7 +116,6 @@
     let timer = null;
     let abortController = null;
 
-    // 입력 감지 (Debounce)
     input.addEventListener('input', function() {
       const query = this.value.trim();
       clearTimeout(timer);
@@ -132,7 +131,6 @@
       }, 300);
     });
 
-    // BGG 실시간 검색 (CORS 우회 오픈 프록시 적용)
     async function searchBoardGame(query) {
       if (abortController) {
         abortController.abort();
@@ -191,14 +189,12 @@
       }
     }
 
-    // 바깥 영역 터치 시 드롭다운 닫기
     document.addEventListener('click', function(e) {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
       }
     });
 
-    // 스프레드시트 저장 (POST)
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
