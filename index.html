@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>내 보드게임 다이어리 (My Shelf)</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=12">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -53,7 +53,7 @@
       </div>
     </section>
 
-    <!-- 사진 영역이 제거된 깔끔한 2열 격자 선반 피드 -->
+    <!-- 격자(Grid) 카드 선반 피드 -->
     <main class="grid-shelf" id="cardList">
       <div class="status-msg">기록을 불러오는 중입니다...</div>
     </main>
@@ -74,22 +74,22 @@
     const playerFilter = document.getElementById('playerFilter');
     const difficultyFilter = document.getElementById('difficultyFilter');
 
-    // 날짜 뒤 시간(시:분:초 등)을 완전히 제거하고 YYYY-MM-DD만 추출하는 함수
-    function cleanDateOnly(rawDate) {
-      if (!rawDate) return "";
-      let str = String(rawDate).trim();
-      // "T"가 있는 ISO 형식이면 T 앞부분만 추출
-      if (str.includes("T")) {
-        str = str.split("T")[0];
+    // 시간(T, 시:분:초, Z 등)을 완전히 제거하고 순수 날짜만 추출하는 함수
+    function formatDateOnly(dateVal) {
+      if (!dateVal) return "";
+      const str = String(dateVal).trim();
+      
+      // 연-월-일 패턴 매칭 (YYYY-MM-DD 또는 YYYY.MM.DD)
+      const match = str.match(/\d{4}[-./]\d{1,2}[-./]\d{1,2}/);
+      if (match) {
+        return match[0].replace(/[-/]/g, '.');
       }
-      // 공백으로 시간이 구분되어 있다면 첫 단어(날짜)만 추출
-      if (str.includes(" ")) {
-        str = str.split(" ")[0];
-      }
-      return str;
+      
+      // 패턴이 없을 경우 T나 공백 이전 10자리만 추출
+      return str.split('T')[0].split(' ')[0].substring(0, 10);
     }
 
-    // Google 스프레드시트 데이터 불러오기
+    // 데이터 불러오기
     async function fetchRecords() {
       try {
         const res = await fetch(API_URL);
@@ -106,7 +106,7 @@
       }
     }
 
-    // 카드 렌더링 (사진 제거 + 순수 날짜만 표시)
+    // 카드 목록 렌더링 (순수 날짜만 노출)
     function renderCards(records) {
       if (records.length === 0) {
         cardList.innerHTML = '<div class="status-msg">기록된 보드게임이 없습니다.</div>';
@@ -116,7 +116,7 @@
       cardList.innerHTML = records.map(item => {
         const diffNum = parseInt(item.difficulty, 10) || 0;
         const stars = "★".repeat(diffNum) + "☆".repeat(Math.max(0, 5 - diffNum));
-        const formattedDate = cleanDateOnly(item.date);
+        const pureDate = formatDateOnly(item.date);
         
         return `
           <article class="grid-card glass-card">
@@ -133,7 +133,7 @@
                 </div>
                 <div class="meta-clean-row">
                   <span class="meta-clean-label">날짜</span>
-                  <span class="meta-clean-val">${escapeHtml(formattedDate)}</span>
+                  <span class="meta-clean-val">${escapeHtml(pureDate)}</span>
                 </div>
               </div>
             </div>
