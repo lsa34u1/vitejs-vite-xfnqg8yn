@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>새 기록 작성 - My Shelf</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=4">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,17 +21,24 @@
     <!-- 입력 폼 -->
     <main class="form-container">
       <form id="recordForm" class="glass-form-card">
-        <!-- 1. 보드게임명 직접 입력 -->
+        <!-- 1. 보드게임명 (BGG 자동완성 연동) -->
         <div class="input-group">
-          <label class="input-label" for="gameName">보드게임명</label>
-          <input 
-            type="text" 
-            id="gameName" 
-            class="text-input glass-input" 
-            placeholder="예: 카탄 (Catan)" 
-            autocomplete="off"
-            required
-          >
+          <div class="label-with-source">
+            <label class="input-label" for="gameName">보드게임명</label>
+            <span class="bgg-badge">BGG 연동</span>
+          </div>
+          <div class="autocomplete-wrapper">
+            <input 
+              type="text" 
+              id="gameName" 
+              class="text-input glass-input" 
+              placeholder="영문 이름 입력 (예: Catan, Wingspan)" 
+              autocomplete="off"
+              required
+            >
+            <div id="bggResults" class="bgg-dropdown" style="display: none;"></div>
+          </div>
+          <p class="input-tip">* 2글자 이상 입력 시 BoardGameGeek 공식 명칭이 추천됩니다.</p>
         </div>
 
         <!-- 2. 인원 (2인 ~ 8인) -->
@@ -90,7 +97,7 @@
           </div>
         </div>
 
-        <!-- 하단 버튼 -->
+        <!-- 하단 액션 버튼 -->
         <div class="button-group">
           <a href="index.html" class="btn btn-cancel">취소</a>
           <button type="submit" id="saveBtn" class="btn btn-save">저장하기</button>
@@ -100,12 +107,71 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyJ4tOJInYvsGWUC9gKDLNLQM2kLkP3u_G-ZS4zaJizbOdGTICthfutBkcNgPz5WJnNIA/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwgnPKokcM9NsFcqbQ4M5f_6TuhWwVtEwPdS-hmO-E7jmIieHBdU4nfgnWucHQgCrdjeA/exec";
 
-    const form = document.getElementById('recordForm');
     const input = document.getElementById('gameName');
+    const dropdown = document.getElementById('bggResults');
+    const form = document.getElementById('recordForm');
     const saveBtn = document.getElementById('saveBtn');
+    let timer = null;
 
+    // 실시간 BGG 자동완성 검색
+    input.addEventListener('input', function() {
+      const query = this.value.trim();
+      clearTimeout(timer);
+
+      if (query.length < 2) {
+        dropdown.style.display = 'none';
+        dropdown.innerHTML = '';
+        return;
+      }
+
+      timer = setTimeout(() => {
+        searchBGG(query);
+      }, 350);
+    });
+
+    async function searchBGG(query) {
+      dropdown.innerHTML = '<div class="bgg-status">BGG 검색 중...</div>';
+      dropdown.style.display = 'block';
+
+      try {
+        const response = await fetch(`${API_URL}?bgg=${encodeURIComponent(query)}`);
+        const result = await response.json();
+
+        if (result.status === "success" && result.data.length > 0) {
+          dropdown.innerHTML = '';
+          result.data.forEach(item => {
+            const option = document.createElement("div");
+            option.className = "bgg-item";
+            option.innerHTML = `
+              <span class="bgg-game-name">${escapeHtml(item.name)}</span>
+              ${item.year ? `<span class="bgg-game-year">(${escapeHtml(item.year)})</span>` : ''}
+            `;
+
+            option.addEventListener("click", function() {
+              input.value = item.name;
+              dropdown.style.display = 'none';
+            });
+
+            dropdown.appendChild(option);
+          });
+        } else {
+          dropdown.innerHTML = '<div class="bgg-status">일치하는 결과가 없습니다.</div>';
+        }
+      } catch (error) {
+        dropdown.innerHTML = '<div class="bgg-status">검색 실패 (직접 입력 가능)</div>';
+      }
+    }
+
+    // 드롭다운 바깥 영역 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    // 스프레드시트 새 행 저장 (POST, Content-Type: text/plain)
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
@@ -145,11 +211,19 @@
           saveBtn.innerText = "저장하기";
         }
       } catch (err) {
-        alert("저장 통신 중 오류가 발생했습니다.");
+        alert("통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
         saveBtn.disabled = false;
         saveBtn.innerText = "저장하기";
       }
     });
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
   </script>
 </body>
 </html>
