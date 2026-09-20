@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>내 보드게임 다이어리 (My Shelf)</title>
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=16">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -74,7 +74,7 @@
     const playerFilter = document.getElementById('playerFilter');
     const difficultyFilter = document.getElementById('difficultyFilter');
 
-    // 시간 문자열(T, 시:분:초, Z)을 완전히 제거하고 순수 YYYY.MM.DD 날짜만 추출
+    // 시간 문자열(T, 시:분:초, Z 등)을 완전히 제거하고 YYYY.MM.DD만 반환하는 함수
     function formatDateOnly(dateVal) {
       if (!dateVal) return "";
       const str = String(dateVal).trim();
@@ -87,7 +87,7 @@
       return str.split('T')[0].split(' ')[0].substring(0, 10);
     }
 
-    // Google 스프레드시트 데이터 불러오기
+    // Google 스프레드시트 데이터 조회
     async function fetchRecords() {
       try {
         const res = await fetch(API_URL);
@@ -104,7 +104,7 @@
       }
     }
 
-    // 카드 목록 렌더링 (사진 영역 없이 알차게 배치)
+    // 카드 목록 렌더링 (사진 제거 및 순수 날짜 표기)
     function renderCards(records) {
       if (records.length === 0) {
         cardList.innerHTML = '<div class="status-msg">기록된 보드게임이 없습니다.</div>';
